@@ -4,27 +4,12 @@ var app = express();
 
 app.use(express.json());
 
-// ─────────────────────────────────────────────
-// ENV VARIABLES (set these in Render dashboard)
-// CLAUDE_API_KEY
-// OPENPHONE_API_KEY
-// OPENPHONE_FROM_NUMBER  (your Quo number in E.164 format e.g. +19705551234)
-// ─────────────────────────────────────────────
-
 var CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
 var OPENPHONE_API_KEY = process.env.OPENPHONE_API_KEY;
 var OPENPHONE_FROM_NUMBER = process.env.OPENPHONE_FROM_NUMBER;
 
-// In-memory conversation store keyed by applicant phone number
-// Format: { "+19701234567": [ { role: "user", content: "..." }, ... ] }
 var conversations = {};
-
-// Track completed conversations so we dont re-screen them
 var completed = {};
-
-// ─────────────────────────────────────────────
-// SYSTEM PROMPT
-// ─────────────────────────────────────────────
 
 var SYSTEM_PROMPT =
 "You are a bilingual (English/Spanish) recruiting assistant for Shynex House Cleaning, " +
@@ -40,13 +25,17 @@ var SYSTEM_PROMPT =
 "OPENING MESSAGE:\n" +
 "When someone texts for the first time, greet them warmly and let them know they reached the right place. " +
 "Tell them you have a few quick questions and ask for their name first.\n" +
-"Spanish opening example: 'Hola, gracias por tu interés en unirte al equipo de limpieza. Tengo unas preguntas rapidas. Primero, me puedes decir tu nombre?'\n" +
+"Spanish opening example: 'Hola, gracias por tu interes en unirte al equipo de limpieza. Tengo unas preguntas rapidas. Me puedes decir tu nombre?'\n" +
 "English opening example: 'Hi, thanks for your interest in joining our cleaning team! I just have a few quick questions. First, what is your name?'\n\n" +
 
-"SCREENING QUESTIONS - ASK ONE AT A TIME IN THIS ORDER:\n" +
+"SCREENING QUESTIONS - ASK ONE AT A TIME IN THIS EXACT ORDER:\n" +
 "1. Their name\n" +
-"2. SPANISH CONVERSATIONS ONLY: Hablas algo de ingles? (Do you speak some English?) - This is not a disqualifier, just good to know.\n" +
-"3. What area of Greeley do you live in?\n" +
+"2. SPANISH CONVERSATIONS ONLY: Hablas algo de ingles? (Do you speak some English?) - This is not a disqualifier, just good info.\n" +
+"3. What city do you live in?\n" +
+"   - If they say Greeley, move on to question 4.\n" +
+"   - If they say a different city, ask: Can you get to Greeley for a pickup location?\n" +
+"   - If they say no, disqualify politely.\n" +
+"   - If they say yes, move on to question 4.\n" +
 "4. Are you available to start this Thursday May 21st at 8am?\n" +
 "5. Do you have any cleaning experience?\n" +
 "6. Is there anything that might get in the way of you starting this week?\n" +
@@ -54,7 +43,7 @@ var SYSTEM_PROMPT =
 
 "DISQUALIFY IMMEDIATELY AND POLITELY if any of these are true:\n" +
 "- They say they cannot start this week or are not available Thursday May 21st\n" +
-"- They are not in the Greeley area and have no way to get to a pickup location\n" +
+"- They do not live in Greeley and cannot get to Greeley for pickup\n" +
 "- They are rude or hostile in their messages\n\n" +
 
 "DISQUALIFICATION MESSAGE IN ENGLISH:\n" +
@@ -84,7 +73,7 @@ var SYSTEM_PROMPT =
 "- Pay: $20 per hour during training while working with the team. " +
 "After 30 days there is an opportunity to become an independent contractor earning $25 to $35 per hour.\n" +
 "- Supplies and equipment: Provided during training. They do not need to bring anything.\n" +
-"- Transportation: Not required right now. We can arrange a pickup in Greeley.\n" +
+"- Transportation: Not required right now. We can arrange pickup in Greeley.\n" +
 "- Experience: Not required. Training is provided.\n" +
 "- Part time or full time: Both positions are currently available. Details will be covered at the meeting.\n" +
 "- Hours per week: Someone from the team will go over those details when they reach out.\n" +
@@ -95,12 +84,27 @@ var SYSTEM_PROMPT =
 "- Never mention the owner name.\n" +
 "- Keep every message short - 2 to 4 sentences max.\n" +
 "- If they go off topic, gently redirect back to the next screening question.\n" +
-"- If they ask something you do not know the answer to, say someone from the team will go over that at the meeting.";
+"- If they ask something you do not know, say someone from the team will go over that at the meeting.";
 
-
-// ─────────────────────────────────────────────
-// CLAUDE API CALL
-// ─────────────────────────────────────────────
+function sendMessage(to, content, callback) {
+    axios.post('https://api.openphone.com/v1/messages', {
+        content: content,
+        from: OPENPHONE_FROM_NUMBER,
+        to: [to]
+    }, {
+        headers: {
+            'Authorization': OPENPHONE_API_KEY,
+            'Content-Type': 'application/json'
+        }
+    }).then(function(response) {
+        console.log('Message sent to ' + to);
+        if (callback) callback(null, response.data);
+    }).catch(function(error) {
+        var msg = error.response ? JSON.stringify(error.response.data) : error.message;
+        console.error('OpenPhone send error:', msg);
+        if (callback) callback(error, null);
+    });
+}
 
 function callClaude(messages, callback) {
     axios.post('https://api.anthropic.com/v1/messages', {
@@ -124,70 +128,30 @@ function callClaude(messages, callback) {
     });
 }
 
-
-// ─────────────────────────────────────────────
-// OPENPHONE SEND MESSAGE
-// ─────────────────────────────────────────────
-
-function sendMessage(to, content, callback) {
-    axios.post('https://api.openphone.com/v1/messages', {
-        content: content,
-        from: OPENPHONE_FROM_NUMBER,
-        to: [to]
-    }, {
-        headers: {
-            'Authorization': OPENPHONE_API_KEY,
-            'Content-Type': 'application/json'
-        }
-    }).then(function(response) {
-        console.log('Message sent to ' + to);
-        if (callback) callback(null, response.data);
-    }).catch(function(error) {
-        var msg = error.response ? JSON.stringify(error.response.data) : error.message;
-        console.error('OpenPhone send error:', msg);
-        if (callback) callback(error, null);
-    });
-}
-
-
-// ─────────────────────────────────────────────
-// WEBHOOK ENDPOINT
-// ─────────────────────────────────────────────
-
 app.post('/webhook', function(req, res) {
-    // Always respond 200 immediately so OpenPhone doesnt retry
     res.status(200).json({ received: true });
 
     var body = req.body;
     console.log('Webhook received:', JSON.stringify(body, null, 2));
 
-    // Only handle inbound messages
     if (!body || body.type !== 'message.received') {
         console.log('Ignoring event type:', body ? body.type : 'unknown');
         return;
     }
 
     var obj = body.data && body.data.object;
-    if (!obj) {
-        console.log('No message object found in webhook');
-        return;
-    }
+    if (!obj) return;
 
     var from = obj.from;
     var messageText = obj.body || obj.content || obj.text;
 
-    if (!from || !messageText) {
-        console.log('Missing from or message body');
-        return;
-    }
+    if (!from || !messageText) return;
 
-    // Ignore messages from our own number (outgoing)
     if (from === OPENPHONE_FROM_NUMBER) {
         console.log('Ignoring outgoing message');
         return;
     }
 
-    // Ignore if conversation already completed
     if (completed[from]) {
         console.log('Conversation already completed for', from);
         return;
@@ -195,19 +159,16 @@ app.post('/webhook', function(req, res) {
 
     console.log('Incoming from ' + from + ': ' + messageText);
 
-    // Initialize conversation if new
     if (!conversations[from]) {
         conversations[from] = [];
         console.log('New applicant:', from);
     }
 
-    // Add their message
     conversations[from].push({
         role: 'user',
         content: messageText
     });
 
-    // Call Claude
     callClaude(conversations[from], function(err, reply) {
         if (err) {
             console.error('Failed to get Claude response');
@@ -216,24 +177,19 @@ app.post('/webhook', function(req, res) {
 
         console.log('Claude reply to ' + from + ': ' + reply);
 
-        // Add Claude reply to history
         conversations[from].push({
             role: 'assistant',
             content: reply
         });
 
-        // Send reply via OpenPhone
         sendMessage(from, reply, null);
 
-        // Mark as complete if disqualified or confirmed
         var lowerReply = reply.toLowerCase();
         var isDisqualified = (
             lowerReply.indexOf('not the right fit') !== -1 ||
             lowerReply.indexOf('no es la indicada') !== -1
         );
         var isComplete = (
-            lowerReply.indexOf('confirmed') !== -1 ||
-            lowerReply.indexOf('confirmado') !== -1 ||
             lowerReply.indexOf('look forward to meeting') !== -1 ||
             lowerReply.indexOf('esperamos conocerte') !== -1
         );
@@ -245,19 +201,9 @@ app.post('/webhook', function(req, res) {
     });
 });
 
-
-// ─────────────────────────────────────────────
-// HEALTH CHECK
-// ─────────────────────────────────────────────
-
 app.get('/', function(req, res) {
     res.send('Shynex Recruiting Agent is running.');
 });
-
-
-// ─────────────────────────────────────────────
-// START SERVER
-// ─────────────────────────────────────────────
 
 var PORT = process.env.PORT || 3000;
 app.listen(PORT, function() {
