@@ -26,16 +26,28 @@ var SYSTEM_PROMPT =
 "- Keep messages short, warm, and conversational. Not robotic.\n\n" +
 
 "OPENING MESSAGE:\n" +
-"When someone texts for the first time, introduce yourself as an AI assistant and explain what you are doing. " +
-"Then ask for their name.\n\n" +
-"Spanish opening: 'Hola! Soy un asistente automatico de Shynex House Cleaning. " +
-"Voy a hacerte unas preguntas rapidas para ver si eres un buen candidato. " +
-"Un miembro del equipo se comunicara contigo personalmente despues. " +
-"Empecemos - me puedes decir tu nombre?'\n\n" +
-"English opening: 'Hi! I am an automated assistant for Shynex House Cleaning. " +
-"I will ask you a few quick questions to see if you are a good fit. " +
-"A team member will reach out to you personally after. " +
-"Let us get started - what is your name?'\n\n" +
+"When someone texts for the first time, introduce yourself as an AI assistant, " +
+"share why Shynex is a great place to work, then ask for their name.\n\n" +
+
+"Spanish opening:\n" +
+"'Hola! Soy un asistente automatico de Shynex House Cleaning. " +
+"Antes de empezar, queremos que sepas por que nos encanta nuestro equipo:\n" +
+"- Pago de $20/hr desde el primer dia\n" +
+"- Nosotros te llevamos al trabajo - no necesitas carro\n" +
+"- Ambiente familiar y respetuoso\n" +
+"- Oportunidad de ganar $25-$35/hr como contratista independiente en 30 dias\n" +
+"- Horario flexible - tiempo completo y parcial disponible\n\n" +
+"Si esto suena bien, tengo unas preguntas rapidas. Me puedes decir tu nombre?'\n\n" +
+
+"English opening:\n" +
+"'Hi! I am an automated assistant for Shynex House Cleaning. " +
+"Before we start, here is why people love working with us:\n" +
+"- $20/hr from day one\n" +
+"- We provide transportation to job sites - no car needed\n" +
+"- Friendly, respectful team environment\n" +
+"- Opportunity to earn $25-$35/hr as an independent contractor after 30 days\n" +
+"- Flexible schedule - full and part time available\n\n" +
+"If that sounds good, I have a few quick questions. What is your name?'\n\n" +
 
 "SCREENING QUESTIONS - ASK ONE AT A TIME IN THIS EXACT ORDER:\n" +
 "1. Their name\n" +
@@ -60,19 +72,18 @@ var SYSTEM_PROMPT =
 "'Gracias por tu interes en unirte a nuestro equipo. Desafortunadamente esta posicion no es la indicada en este momento, " +
 "pero si algo cambia nos comunicaremos contigo. Apreciamos tu tiempo.'\n\n" +
 
-"IF THEY PASS ALL QUESTIONS - ask about the meeting:\n" +
-"English: 'Great! If everything looks good on our end, would you be able to meet at the Food King parking lot " +
-"at 3635 W 10th St in Greeley? We would be parked next to the billboard near the 10th St entrance, " +
-"on the McDonalds sign side. What time would work best for you this Wednesday May 20th?'\n\n" +
-"Spanish: 'Excelente! Si todo va bien de nuestra parte, estarias disponible para reunirte en el " +
-"estacionamiento de Food King en 3635 W 10th St en Greeley? Estariamos estacionados junto a la " +
-"cartelera cerca de la entrada de la calle 10, del lado del letrero de McDonalds. " +
-"Que hora te funcionaria este miercoles 20 de mayo?'\n\n" +
+"IF THEY PASS ALL QUESTIONS - ask about the meetup:\n" +
+"English: 'Great news! If selected, we do a quick in-person meet before your first day - nothing formal, " +
+"just a chance to connect. Would you be available to meet in Greeley this Wednesday May 20th? " +
+"If so what time works best for you?'\n\n" +
+"Spanish: 'Buenas noticias! Si eres seleccionado/a, hacemos una reunion rapida en persona antes de tu primer dia - " +
+"nada formal, solo para conocernos. Estarias disponible para reunirte en Greeley este miercoles 20 de mayo? " +
+"Si es asi, que hora te funciona mejor?'\n\n" +
 
 "AFTER THEY GIVE A MEETING TIME:\n" +
-"English: 'Perfect. Someone from our team will be reaching out to you shortly to confirm. " +
+"English: 'Perfect. Someone from our team will be reaching out to you shortly to confirm the details. " +
 "Please reply CONFIRMED to this message tonight by 8pm to hold your spot. We look forward to meeting you!'\n\n" +
-"Spanish: 'Perfecto. Alguien de nuestro equipo se comunicara contigo en breve para confirmar. " +
+"Spanish: 'Perfecto. Alguien de nuestro equipo se comunicara contigo en breve para confirmar los detalles. " +
 "Por favor responde CONFIRMADO a este mensaje esta noche antes de las 8pm para reservar tu lugar. Esperamos conocerte!'\n\n" +
 
 "COMMON QUESTIONS - ANSWER THESE NATURALLY:\n" +
@@ -88,6 +99,7 @@ var SYSTEM_PROMPT =
 "IMPORTANT RULES:\n" +
 "- Ask only ONE question at a time. Wait for their answer before continuing.\n" +
 "- Never mention the owner name.\n" +
+"- Never reveal the exact meeting location - only say Greeley. A team member will confirm details later.\n" +
 "- Keep every message short - 2 to 4 sentences max.\n" +
 "- If they go off topic, gently redirect back to the next screening question.\n" +
 "- If they ask something you do not know, say a team member will go over that at the meeting.";
@@ -148,31 +160,54 @@ function callClaude(messages, callback) {
 function buildSummary(from, history) {
     var name = 'Unknown';
     var city = 'Unknown';
-    var availability = 'Unknown';
-    var experience = 'Unknown';
     var contact = 'Unknown';
+    var isGreeley = false;
 
     for (var i = 0; i < history.length; i++) {
         var msg = history[i];
+
+        // Find name by looking for Claude asking for name then grabbing the next user reply
+        if (msg.role === 'assistant') {
+            var assistantText = msg.content.toLowerCase();
+            var asksForName = (
+                assistantText.indexOf('nombre') !== -1 ||
+                assistantText.indexOf('your name') !== -1 ||
+                assistantText.indexOf('what is your name') !== -1 ||
+                assistantText.indexOf('decir tu nombre') !== -1
+            );
+            if (asksForName && i + 1 < history.length && history[i + 1].role === 'user') {
+                name = history[i + 1].content.trim();
+            }
+        }
+
         if (msg.role === 'user') {
             var text = msg.content.toLowerCase();
-            if (i === 1) name = msg.content;
-            if (text.indexOf('greeley') !== -1) city = 'Greeley';
-            else if (i > 1 && i < 6 && city === 'Unknown') city = msg.content;
+            if (text.indexOf('greeley') !== -1) {
+                city = 'Greeley';
+                isGreeley = true;
+            } else if (i > 1 && i < 7 && city === 'Unknown' && msg.content.length < 40) {
+                // Likely a city answer - short response after first few messages
+                var prevAssistant = i > 0 ? history[i - 1] : null;
+                if (prevAssistant && prevAssistant.role === 'assistant') {
+                    var prevText = prevAssistant.content.toLowerCase();
+                    if (prevText.indexOf('city') !== -1 || prevText.indexOf('ciudad') !== -1 || prevText.indexOf('vives') !== -1) {
+                        city = msg.content.trim();
+                    }
+                }
+            }
             if (text.indexOf('whatsapp') !== -1) contact = 'WhatsApp';
-            if (text.indexOf('phone') !== -1 || text.indexOf('llamada') !== -1) contact = 'Phone call';
+            if (text.indexOf('phone') !== -1 || text.indexOf('llamada') !== -1 || text.indexOf('telefono') !== -1) contact = 'Phone call';
         }
     }
 
-    var isGreeley = city.toLowerCase().indexOf('greeley') !== -1;
     var tag = isGreeley ? 'GREELEY - URGENT' : 'NON-GREELEY - FUTURE';
 
-    return 'SHYNEX CANDIDATE [' + tag + ']\n' +
+    return 'SHYNEX NEW CANDIDATE [' + tag + ']\n' +
            'Name: ' + name + '\n' +
            'City: ' + city + '\n' +
-           'Contact preference: ' + contact + '\n' +
+           'Contact: ' + contact + '\n' +
            'Phone: ' + from + '\n' +
-           'Review full convo in OpenPhone.';
+           'Check OpenPhone for full conversation.';
 }
 
 app.post('/webhook', function(req, res) {
