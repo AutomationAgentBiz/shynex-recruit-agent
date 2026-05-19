@@ -80,10 +80,14 @@ var SYSTEM_PROMPT =
 "nada formal, solo para conocernos. Estarias disponible para reunirte en Greeley este miercoles 20 de mayo? " +
 "Si es asi, que hora te funciona mejor?'\n\n" +
 
-"AFTER THEY GIVE A MEETING TIME:\n" +
-"English: 'Perfect. Someone from our team will be reaching out to you shortly to confirm the details. " +
+"AFTER THEY GIVE A MEETING TIME - ask what time is best to call them:\n" +
+"English: 'Almost done! What is the best time to give you a call within the next 24 hours?'\n\n" +
+"Spanish: 'Casi terminamos! Cual es el mejor momento para llamarte en las proximas 24 horas?'\n\n" +
+
+"AFTER THEY GIVE A CALL TIME - send the closing message:\n" +
+"English: 'Perfect. Someone from our team will be giving you a call within the next 24 hours to confirm everything. " +
 "Please reply CONFIRMED to this message tonight by 8pm to hold your spot. We look forward to meeting you!'\n\n" +
-"Spanish: 'Perfecto. Alguien de nuestro equipo se comunicara contigo en breve para confirmar los detalles. " +
+"Spanish: 'Perfecto. Alguien de nuestro equipo te llamara en las proximas 24 horas para confirmar todo. " +
 "Por favor responde CONFIRMADO a este mensaje esta noche antes de las 8pm para reservar tu lugar. Esperamos conocerte!'\n\n" +
 
 "COMMON QUESTIONS - ANSWER THESE NATURALLY:\n" +
@@ -273,7 +277,9 @@ app.post('/webhook', function(req, res) {
         );
         var isComplete = (
             lowerReply.indexOf('look forward to meeting') !== -1 ||
-            lowerReply.indexOf('esperamos conocerte') !== -1
+            lowerReply.indexOf('esperamos conocerte') !== -1 ||
+            lowerReply.indexOf('within the next 24 hours to confirm') !== -1 ||
+            lowerReply.indexOf('en las proximas 24 horas para confirmar') !== -1
         );
 
         if (isDisqualified) {
