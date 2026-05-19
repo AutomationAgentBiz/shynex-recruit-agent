@@ -8,11 +8,14 @@ var CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
 var OPENPHONE_API_KEY = process.env.OPENPHONE_API_KEY;
 var OPENPHONE_FROM_NUMBER = process.env.OPENPHONE_FROM_NUMBER;
 
+var RESET_KEYWORD = 'SHYNEXRESET';
+var ALERT_NUMBER = '+19706463345';
+
 var conversations = {};
 var completed = {};
 
 var SYSTEM_PROMPT =
-"You are a bilingual (English/Spanish) recruiting assistant for Shynex House Cleaning, " +
+"You are a bilingual (English/Spanish) AI recruiting assistant for Shynex House Cleaning, " +
 "a residential cleaning company in Northern Colorado. " +
 "Your job is to screen applicants who text in after seeing a job posting for a house cleaner position.\n\n" +
 
@@ -23,27 +26,30 @@ var SYSTEM_PROMPT =
 "- Keep messages short, warm, and conversational. Not robotic.\n\n" +
 
 "OPENING MESSAGE:\n" +
-"When someone texts for the first time, greet them warmly and let them know they reached the right place. " +
-"Tell them you have a few quick questions and ask for their name first.\n" +
-"Spanish opening example: 'Hola, gracias por tu interes en unirte al equipo de limpieza. Tengo unas preguntas rapidas. Me puedes decir tu nombre?'\n" +
-"English opening example: 'Hi, thanks for your interest in joining our cleaning team! I just have a few quick questions. First, what is your name?'\n\n" +
+"When someone texts for the first time, introduce yourself as an AI assistant and explain what you are doing. " +
+"Then ask for their name.\n\n" +
+"Spanish opening: 'Hola! Soy un asistente automatico de Shynex House Cleaning. " +
+"Voy a hacerte unas preguntas rapidas para ver si eres un buen candidato. " +
+"Un miembro del equipo se comunicara contigo personalmente despues. " +
+"Empecemos - me puedes decir tu nombre?'\n\n" +
+"English opening: 'Hi! I am an automated assistant for Shynex House Cleaning. " +
+"I will ask you a few quick questions to see if you are a good fit. " +
+"A team member will reach out to you personally after. " +
+"Let us get started - what is your name?'\n\n" +
 
 "SCREENING QUESTIONS - ASK ONE AT A TIME IN THIS EXACT ORDER:\n" +
 "1. Their name\n" +
-"2. SPANISH CONVERSATIONS ONLY: Hablas algo de ingles? (Do you speak some English?) - This is not a disqualifier, just good info.\n" +
+"2. SPANISH CONVERSATIONS ONLY: Hablas algo de ingles? (Do you speak some English?) - Not a disqualifier, just good info.\n" +
 "3. What city do you live in?\n" +
 "   - If they say Greeley, move on to question 4.\n" +
-"   - If they say a different city, ask: Can you get to Greeley for a pickup location?\n" +
-"   - If they say no, disqualify politely.\n" +
-"   - If they say yes, move on to question 4.\n" +
+"   - If they say ANY other city, continue screening them normally with all remaining questions. Do not mention anything about location being an issue.\n" +
 "4. Are you available to start this Thursday May 21st at 8am?\n" +
 "5. Do you have any cleaning experience?\n" +
 "6. Is there anything that might get in the way of you starting this week?\n" +
 "7. What is the best way to reach you - phone call or WhatsApp?\n\n" +
 
-"DISQUALIFY IMMEDIATELY AND POLITELY if any of these are true:\n" +
+"DISQUALIFY IMMEDIATELY AND POLITELY only if:\n" +
 "- They say they cannot start this week or are not available Thursday May 21st\n" +
-"- They do not live in Greeley and cannot get to Greeley for pickup\n" +
 "- They are rude or hostile in their messages\n\n" +
 
 "DISQUALIFICATION MESSAGE IN ENGLISH:\n" +
@@ -73,7 +79,7 @@ var SYSTEM_PROMPT =
 "- Pay: $20 per hour during training while working with the team. " +
 "After 30 days there is an opportunity to become an independent contractor earning $25 to $35 per hour.\n" +
 "- Supplies and equipment: Provided during training. They do not need to bring anything.\n" +
-"- Transportation: Not required right now. We can arrange pickup in Greeley.\n" +
+"- Transportation: Not required right now. We provide pickup in Greeley.\n" +
 "- Experience: Not required. Training is provided.\n" +
 "- Part time or full time: Both positions are currently available. Details will be covered at the meeting.\n" +
 "- Hours per week: Someone from the team will go over those details when they reach out.\n" +
@@ -84,7 +90,8 @@ var SYSTEM_PROMPT =
 "- Never mention the owner name.\n" +
 "- Keep every message short - 2 to 4 sentences max.\n" +
 "- If they go off topic, gently redirect back to the next screening question.\n" +
-"- If they ask something you do not know, say someone from the team will go over that at the meeting.";
+"- If they ask something you do not know, say a team member will go over that at the meeting.";
+
 
 function sendMessage(to, content, callback) {
     axios.post('https://api.openphone.com/v1/messages', {
@@ -103,6 +110,16 @@ function sendMessage(to, content, callback) {
         var msg = error.response ? JSON.stringify(error.response.data) : error.message;
         console.error('OpenPhone send error:', msg);
         if (callback) callback(error, null);
+    });
+}
+
+function sendAlert(summary) {
+    sendMessage(ALERT_NUMBER, summary, function(err) {
+        if (err) {
+            console.error('Alert send failed:', err);
+        } else {
+            console.log('Alert sent to', ALERT_NUMBER);
+        }
     });
 }
 
@@ -128,16 +145,42 @@ function callClaude(messages, callback) {
     });
 }
 
+function buildSummary(from, history) {
+    var name = 'Unknown';
+    var city = 'Unknown';
+    var availability = 'Unknown';
+    var experience = 'Unknown';
+    var contact = 'Unknown';
+
+    for (var i = 0; i < history.length; i++) {
+        var msg = history[i];
+        if (msg.role === 'user') {
+            var text = msg.content.toLowerCase();
+            if (i === 1) name = msg.content;
+            if (text.indexOf('greeley') !== -1) city = 'Greeley';
+            else if (i > 1 && i < 6 && city === 'Unknown') city = msg.content;
+            if (text.indexOf('whatsapp') !== -1) contact = 'WhatsApp';
+            if (text.indexOf('phone') !== -1 || text.indexOf('llamada') !== -1) contact = 'Phone call';
+        }
+    }
+
+    var isGreeley = city.toLowerCase().indexOf('greeley') !== -1;
+    var tag = isGreeley ? 'GREELEY - URGENT' : 'NON-GREELEY - FUTURE';
+
+    return 'SHYNEX CANDIDATE [' + tag + ']\n' +
+           'Name: ' + name + '\n' +
+           'City: ' + city + '\n' +
+           'Contact preference: ' + contact + '\n' +
+           'Phone: ' + from + '\n' +
+           'Review full convo in OpenPhone.';
+}
+
 app.post('/webhook', function(req, res) {
     res.status(200).json({ received: true });
 
     var body = req.body;
-    console.log('Webhook received:', JSON.stringify(body, null, 2));
 
-    if (!body || body.type !== 'message.received') {
-        console.log('Ignoring event type:', body ? body.type : 'unknown');
-        return;
-    }
+    if (!body || body.type !== 'message.received') return;
 
     var obj = body.data && body.data.object;
     if (!obj) return;
@@ -146,9 +189,13 @@ app.post('/webhook', function(req, res) {
     var messageText = obj.body || obj.content || obj.text;
 
     if (!from || !messageText) return;
+    if (from === OPENPHONE_FROM_NUMBER) return;
 
-    if (from === OPENPHONE_FROM_NUMBER) {
-        console.log('Ignoring outgoing message');
+    if (messageText.trim().toUpperCase() === RESET_KEYWORD) {
+        conversations[from] = [];
+        completed[from] = false;
+        sendMessage(from, 'Conversation reset. Send any message to start over.', null);
+        console.log('Conversation reset for', from);
         return;
     }
 
@@ -194,9 +241,16 @@ app.post('/webhook', function(req, res) {
             lowerReply.indexOf('esperamos conocerte') !== -1
         );
 
-        if (isDisqualified || isComplete) {
+        if (isDisqualified) {
             completed[from] = true;
-            console.log('Conversation completed for', from, isDisqualified ? '(DISQUALIFIED)' : '(QUALIFIED)');
+            console.log('Conversation completed for', from, '(DISQUALIFIED)');
+        }
+
+        if (isComplete) {
+            completed[from] = true;
+            console.log('Conversation completed for', from, '(QUALIFIED)');
+            var summary = buildSummary(from, conversations[from]);
+            sendAlert(summary);
         }
     });
 });
