@@ -11,9 +11,6 @@ var OPENPHONE_FROM_NUMBER = process.env.OPENPHONE_FROM_NUMBER;
 var RESET_KEYWORD = 'SHYNEXRESET';
 var ALERT_NUMBER = '+19706463345';
 
-// ─────────────────────────────────────────────
-// AVAILABLE CALL SLOTS - Wednesday May 20th MDT
-// ─────────────────────────────────────────────
 var slots = [
     { time: '3:00 PM', booked: false, bookedBy: null },
     { time: '3:15 PM', booked: false, bookedBy: null },
@@ -34,9 +31,7 @@ var slots = [
 function getAvailableSlots() {
     var available = [];
     for (var i = 0; i < slots.length; i++) {
-        if (!slots[i].booked) {
-            available.push(slots[i].time);
-        }
+        if (!slots[i].booked) available.push(slots[i].time);
     }
     return available;
 }
@@ -62,131 +57,114 @@ function formatAvailableSlots() {
     return list.trim();
 }
 
+// Mode tracking per phone number
+// modes: 'new' | 'returning_check' | 'city_check' | 'screening' | 'scheduling' | 'done'
+var userMode = {};
+var userCity = {};
+var userPhone = {};
 var conversations = {};
 var completed = {};
-var schedulingMode = {};
 
-var SYSTEM_PROMPT =
+var GREETING_PROMPT =
+"You are a bilingual (English/Spanish) assistant for Shynex House Cleaning. " +
+"Your first message to anyone who texts in is ALWAYS this — match their language:\n\n" +
+"Spanish: 'Hola! Gracias por tu interes en Shynex House Cleaning. Ya habiamos hablado antes o eres nuevo/a?'\n\n" +
+"English: 'Hi! Thanks for your interest in Shynex House Cleaning. Have we spoken before or are you new?'\n\n" +
+"Send this and nothing else. Wait for their response.";
+
+var CITY_CHECK_PROMPT =
+"You are a bilingual (English/Spanish) assistant for Shynex House Cleaning. " +
+"The person has indicated they have spoken with us before. " +
+"Ask them what city they live in to determine next steps. Match their language.\n\n" +
+"Spanish: 'Perfecto! En que ciudad vives?'\n" +
+"English: 'Perfect! What city do you live in?'\n\n" +
+"Send this and nothing else.";
+
+var SCREENING_PROMPT =
 "You are a bilingual (English/Spanish) AI recruiting assistant for Shynex House Cleaning, " +
 "a residential cleaning company in Northern Colorado. " +
-"Your job is to screen applicants who text in after seeing a job posting for a house cleaner position.\n\n" +
+"Your job is to screen new applicants who text in after seeing a job posting.\n\n" +
 
 "LANGUAGE RULE:\n" +
-"- If the applicant texts in Spanish, respond entirely in Spanish.\n" +
-"- If they text in English, respond entirely in English.\n" +
-"- Never mix languages in a single message.\n" +
-"- Keep messages short, warm, and conversational. Not robotic.\n\n" +
+"- Match the language the applicant uses. Never mix languages.\n" +
+"- Keep messages short, warm, and conversational.\n\n" +
 
-"OPENING MESSAGE:\n" +
-"When someone texts for the first time, introduce yourself as an AI assistant, " +
-"share why Shynex is a great place to work, then ask for their name.\n\n" +
-
-"Spanish opening:\n" +
-"'Hola! Soy un asistente automatico de Shynex House Cleaning. " +
-"Antes de empezar, queremos que sepas por que nos encanta nuestro equipo:\n" +
+"OPENING FOR NEW APPLICANTS:\n" +
+"Spanish: 'Excelente! Antes de empezar, queremos que sepas por que nos encanta nuestro equipo:\n" +
 "- Pago de $20/hr desde el primer dia\n" +
 "- Nosotros te llevamos al trabajo - no necesitas carro\n" +
 "- Ambiente familiar y respetuoso\n" +
 "- Oportunidad de ganar $25-$35/hr como contratista independiente en 30 dias\n" +
 "- Horario flexible - tiempo completo y parcial disponible\n\n" +
-"Si esto suena bien, tengo unas preguntas rapidas. Me puedes decir tu nombre?'\n\n" +
-
-"English opening:\n" +
-"'Hi! I am an automated assistant for Shynex House Cleaning. " +
-"Before we start, here is why people love working with us:\n" +
+"Me puedes decir tu nombre?'\n\n" +
+"English: 'Great! Before we start, here is why people love working with us:\n" +
 "- $20/hr from day one\n" +
 "- We provide transportation to job sites - no car needed\n" +
 "- Friendly, respectful team environment\n" +
 "- Opportunity to earn $25-$35/hr as an independent contractor after 30 days\n" +
 "- Flexible schedule - full and part time available\n\n" +
-"If that sounds good, I have a few quick questions. What is your name?'\n\n" +
+"What is your name?'\n\n" +
 
-"SCREENING QUESTIONS - ASK ONE AT A TIME IN THIS EXACT ORDER:\n" +
-"1. Their name\n" +
-"2. SPANISH CONVERSATIONS ONLY: Hablas algo de ingles? (Do you speak some English?) - Not a disqualifier, just good info.\n" +
+"SCREENING QUESTIONS - ONE AT A TIME IN ORDER:\n" +
+"1. Name\n" +
+"2. SPANISH ONLY: Hablas algo de ingles?\n" +
 "3. What city do you live in?\n" +
-"   - If they say Greeley, move on to question 4.\n" +
-"   - If they say ANY other city, continue screening them normally with all remaining questions. Do not mention anything about location being an issue.\n" +
 "4. Are you available to start this Thursday May 21st at 8am?\n" +
 "5. Do you have any cleaning experience?\n" +
-"6. Is there anything that might get in the way of you starting this week?\n" +
-"7. What is the best way to reach you - phone call or WhatsApp?\n\n" +
+"6. Is there anything that might get in the way of starting this week?\n" +
+"7. Best way to reach you - phone or WhatsApp?\n\n" +
 
-"DISQUALIFY IMMEDIATELY AND POLITELY only if:\n" +
-"- They say they cannot start this week or are not available Thursday May 21st\n" +
-"- They are rude or hostile in their messages\n\n" +
+"DISQUALIFY ONLY IF:\n" +
+"- Cannot start this week or not available Thursday May 21st\n" +
+"- Rude or hostile\n\n" +
 
-"DISQUALIFICATION MESSAGE IN ENGLISH:\n" +
-"'Thank you for your interest in joining our team. Unfortunately this position is not the right fit at this time, " +
-"but if anything changes we will reach out. We appreciate your time.'\n\n" +
+"DISQUALIFICATION - English: 'Thank you for your interest. Unfortunately this position is not the right fit at this time, but if anything changes we will reach out. We appreciate your time.'\n" +
+"DISQUALIFICATION - Spanish: 'Gracias por tu interes. Desafortunadamente esta posicion no es la indicada en este momento, pero si algo cambia nos comunicaremos. Apreciamos tu tiempo.'\n\n" +
 
-"DISQUALIFICATION MESSAGE IN SPANISH:\n" +
-"'Gracias por tu interes en unirte a nuestro equipo. Desafortunadamente esta posicion no es la indicada en este momento, " +
-"pero si algo cambia nos comunicaremos contigo. Apreciamos tu tiempo.'\n\n" +
+"AFTER ALL QUESTIONS ANSWERED - ask about meetup:\n" +
+"English: 'Great news! If selected, we do a quick in-person meet in Greeley before your first day - nothing formal, just a chance to connect. Would you be available this Wednesday May 20th? What time works?'\n" +
+"Spanish: 'Buenas noticias! Si eres seleccionado/a, hacemos una reunion rapida en Greeley antes de tu primer dia - nada formal, solo para conocernos. Estarias disponible este miercoles 20 de mayo? Que hora te funciona?'\n\n" +
 
-"IF THEY PASS ALL QUESTIONS - ask about the meetup:\n" +
-"English: 'Great news! If selected, we do a quick in-person meet before your first day - nothing formal, " +
-"just a chance to connect. Would you be available to meet in Greeley this Wednesday May 20th? " +
-"If so what time works best for you?'\n\n" +
-"Spanish: 'Buenas noticias! Si eres seleccionado/a, hacemos una reunion rapida en persona antes de tu primer dia - " +
-"nada formal, solo para conocernos. Estarias disponible para reunirte en Greeley este miercoles 20 de mayo? " +
-"Si es asi, que hora te funciona mejor?'\n\n" +
-
-"AFTER THEY GIVE A MEETING TIME - ask what time is best to call them:\n" +
-"English: 'Almost done! What is the best time to give you a call within the next 24 hours?'\n\n" +
+"AFTER MEETUP TIME - ask best call time:\n" +
+"English: 'Almost done! What is the best time to call you in the next 24 hours?'\n" +
 "Spanish: 'Casi terminamos! Cual es el mejor momento para llamarte en las proximas 24 horas?'\n\n" +
 
-"AFTER THEY GIVE A CALL TIME - send the closing message:\n" +
-"English: 'Perfect. Someone from our team will be giving you a call within the next 24 hours to confirm everything. " +
-"Please reply CONFIRMED to this message tonight by 8pm to hold your spot. We look forward to meeting you!'\n\n" +
-"Spanish: 'Perfecto. Alguien de nuestro equipo te llamara en las proximas 24 horas para confirmar todo. " +
-"Por favor responde CONFIRMADO a este mensaje esta noche antes de las 8pm para reservar tu lugar. Esperamos conocerte!'\n\n" +
+"AFTER CALL TIME - closing:\n" +
+"English: 'Perfect. Someone from our team will call you within the next 24 hours. Please reply CONFIRMED tonight by 8pm to hold your spot. We look forward to meeting you!'\n" +
+"Spanish: 'Perfecto. Alguien de nuestro equipo te llamara en las proximas 24 horas. Por favor responde CONFIRMADO esta noche antes de las 8pm para reservar tu lugar. Esperamos conocerte!'\n\n" +
 
-"COMMON QUESTIONS - ANSWER THESE NATURALLY:\n" +
-"- Pay: $20 per hour during training while working with the team. " +
-"After 30 days there is an opportunity to become an independent contractor earning $25 to $35 per hour.\n" +
-"- Supplies and equipment: Provided during training. They do not need to bring anything.\n" +
-"- Transportation: Not required right now. We provide pickup in Greeley.\n" +
-"- Experience: Not required. Training is provided.\n" +
-"- Part time or full time: Both positions are currently available. Details will be covered at the meeting.\n" +
-"- Hours per week: Someone from the team will go over those details when they reach out.\n" +
-"- Type of work: Residential house cleaning in Northern Colorado.\n\n" +
+"COMMON QUESTIONS:\n" +
+"- Pay: $20/hr training, $25-35/hr contractor after 30 days\n" +
+"- Supplies: provided during training\n" +
+"- Transportation: provided in Greeley\n" +
+"- Experience: not required, training provided\n" +
+"- Full or part time: both available, details at meeting\n\n" +
 
-"IMPORTANT RULES:\n" +
-"- Ask only ONE question at a time. Wait for their answer before continuing.\n" +
-"- Never mention the owner name.\n" +
-"- Never reveal the exact meeting location - only say Greeley. A team member will confirm details later.\n" +
-"- Keep every message short - 2 to 4 sentences max.\n" +
-"- If they go off topic, gently redirect back to the next screening question.\n" +
-"- If they ask something you do not know, say a team member will go over that at the meeting.";
+"RULES:\n" +
+"- One question at a time\n" +
+"- Never mention owner name\n" +
+"- Never reveal exact meeting location - say Greeley only\n" +
+"- 2-4 sentences max per message";
 
-var SCHEDULING_SYSTEM_PROMPT =
+var SCHEDULING_PROMPT =
 "You are a bilingual (English/Spanish) scheduling assistant for Shynex House Cleaning. " +
-"Your only job right now is to help a candidate book a call slot for today Wednesday May 20th. " +
-"Be warm, friendly, and conversational.\n\n" +
+"Your only job is to book a call slot for today Wednesday May 20th.\n\n" +
 
-"LANGUAGE RULE:\n" +
-"- Match the language the candidate is using. Spanish if they write Spanish, English if they write English.\n\n" +
+"LANGUAGE RULE: Match the candidate's language.\n\n" +
 
 "YOUR FLOW:\n" +
-"1. First ask if they can start this Thursday May 21st at 8am if hired.\n" +
-"   - If YES and they live in Greeley: offer them the available slots listed below.\n" +
-"   - If YES but they do not live in Greeley: tell them warmly that right now we are scheduling Greeley locals first " +
-"but that someone will be in touch with them soon about next steps.\n" +
-"   - If NO they cannot start Thursday: tell them warmly that someone will reach out about future opportunities " +
-"and thank them for their time.\n\n" +
-"2. When offering slots present them clearly and ask which time works best.\n\n" +
-"3. When they pick a slot respond with the EXACT phrase 'SLOT_BOOKED:[time]' on its own line " +
-"followed by a confirmation message.\n" +
-"   English confirmation: 'Perfect! You are booked for a call at [time] today. " +
-"Someone from our team will call you then. We look forward to speaking with you!'\n" +
-"   Spanish confirmation: 'Perfecto! Quedas agendado/a para una llamada a las [time] hoy. " +
-"Alguien de nuestro equipo te llamara a esa hora. Esperamos hablar contigo!'\n\n" +
-"4. If they ask for a slot that is no longer available, apologize and offer the remaining slots.\n" +
-"5. If there are no slots left, tell them all slots are taken but someone will reach out soon.\n\n" +
-"AVAILABLE SLOTS PLACEHOLDER - this will be replaced dynamically.\n\n" +
-"IMPORTANT: Never skip step 1. Always ask about Thursday availability first before offering slots.";
-
+"1. First ask: Can you start this Thursday May 21st at 8am if hired?\n" +
+"   - YES + Greeley: offer available slots\n" +
+"   - YES + not Greeley: 'We are scheduling Greeley locals first but someone will be in touch soon about next steps. Thank you!' — end conversation\n" +
+"   - NO: 'No problem at all. Someone will reach out about future opportunities. Thank you!' — end conversation\n\n" +
+"2. Present available slots clearly and ask which works best.\n\n" +
+"3. When they pick a slot write SLOT_BOOKED:[time] on its own line then send confirmation:\n" +
+"   English: 'Perfect! You are booked for a call at [time] today Wednesday. Someone from our team will call you then. We look forward to speaking with you!'\n" +
+"   Spanish: 'Perfecto! Quedas agendado/a para una llamada a las [time] hoy miercoles. Alguien de nuestro equipo te llamara a esa hora. Esperamos hablar contigo!'\n\n" +
+"4. If slot taken, apologize and offer remaining slots.\n" +
+"5. If no slots left: 'All slots are taken but someone will reach out to you soon.'\n\n" +
+"AVAILABLE SLOTS PLACEHOLDER\n\n" +
+"IMPORTANT: Always ask about Thursday availability first before offering slots.";
 
 function sendMessage(to, content, callback) {
     axios.post('https://api.openphone.com/v1/messages', {
@@ -208,14 +186,17 @@ function sendMessage(to, content, callback) {
     });
 }
 
-function sendAlert(summary) {
-    sendMessage(ALERT_NUMBER, summary, function(err) {
-        if (err) {
-            console.error('Alert send failed:', err);
-        } else {
-            console.log('Alert sent to', ALERT_NUMBER);
-        }
-    });
+function sendAlert(from, name, city, bookedTime) {
+    var isGreeley = city && city.toLowerCase().indexOf('greeley') !== -1;
+    var tag = isGreeley ? 'GREELEY - URGENT' : 'NON-GREELEY - FUTURE';
+    var callInfo = bookedTime ? 'Call booked: ' + bookedTime + ' today (Wed May 20)' : 'No call booked';
+    var msg = 'SHYNEX CANDIDATE [' + tag + ']\n' +
+              'Name: ' + (name || 'Unknown') + '\n' +
+              'City: ' + (city || 'Unknown') + '\n' +
+              'Phone: ' + from + '\n' +
+              callInfo + '\n' +
+              'Check OpenPhone for full conversation.';
+    sendMessage(ALERT_NUMBER, msg, null);
 }
 
 function callClaude(systemPrompt, messages, callback) {
@@ -240,55 +221,71 @@ function callClaude(systemPrompt, messages, callback) {
     });
 }
 
-function buildSummary(from, history, bookedTime) {
-    var name = 'Unknown';
-    var city = 'Unknown';
-    var contact = 'Unknown';
-    var isGreeley = false;
-
-    for (var i = 0; i < history.length; i++) {
-        var msg = history[i];
-        if (msg.role === 'assistant') {
-            var assistantText = msg.content.toLowerCase();
-            var asksForName = (
-                assistantText.indexOf('nombre') !== -1 ||
-                assistantText.indexOf('your name') !== -1 ||
-                assistantText.indexOf('what is your name') !== -1 ||
-                assistantText.indexOf('decir tu nombre') !== -1
-            );
-            if (asksForName && i + 1 < history.length && history[i + 1].role === 'user') {
-                name = history[i + 1].content.trim();
-            }
-        }
-        if (msg.role === 'user') {
-            var text = msg.content.toLowerCase();
-            if (text.indexOf('greeley') !== -1) {
-                city = 'Greeley';
-                isGreeley = true;
-            } else if (i > 1 && i < 7 && city === 'Unknown' && msg.content.length < 40) {
-                var prevAssistant = i > 0 ? history[i - 1] : null;
-                if (prevAssistant && prevAssistant.role === 'assistant') {
-                    var prevText = prevAssistant.content.toLowerCase();
-                    if (prevText.indexOf('city') !== -1 || prevText.indexOf('ciudad') !== -1 || prevText.indexOf('vives') !== -1) {
-                        city = msg.content.trim();
-                    }
-                }
-            }
-            if (text.indexOf('whatsapp') !== -1) contact = 'WhatsApp';
-            if (text.indexOf('phone') !== -1 || text.indexOf('llamada') !== -1 || text.indexOf('telefono') !== -1) contact = 'Phone call';
-        }
+function handleScheduling(from, messageText) {
+    if (!conversations[from + '_sched']) {
+        conversations[from + '_sched'] = [];
     }
 
-    var tag = isGreeley ? 'GREELEY - URGENT' : 'NON-GREELEY - FUTURE';
-    var callInfo = bookedTime ? 'Call booked: ' + bookedTime + ' today (Wed May 20)' : 'No call booked yet';
+    conversations[from + '_sched'].push({ role: 'user', content: messageText });
 
-    return 'SHYNEX NEW CANDIDATE [' + tag + ']\n' +
-           'Name: ' + name + '\n' +
-           'City: ' + city + '\n' +
-           'Contact: ' + contact + '\n' +
-           'Phone: ' + from + '\n' +
-           callInfo + '\n' +
-           'Check OpenPhone for full conversation.';
+    var availableSlots = formatAvailableSlots();
+    var schedPrompt = SCHEDULING_PROMPT;
+    if (availableSlots) {
+        schedPrompt = schedPrompt.replace(
+            'AVAILABLE SLOTS PLACEHOLDER',
+            'AVAILABLE SLOTS FOR TODAY WEDNESDAY MAY 20TH:\n' + availableSlots
+        );
+        // inject city context
+        var cityInfo = userCity[from] ? 'The candidate lives in ' + userCity[from] + '.' : '';
+        schedPrompt = schedPrompt + '\n\n' + cityInfo;
+    } else {
+        schedPrompt = schedPrompt.replace(
+            'AVAILABLE SLOTS PLACEHOLDER',
+            'ALL SLOTS ARE FULLY BOOKED. Tell them warmly all slots are taken but someone will reach out soon.'
+        );
+    }
+
+    callClaude(schedPrompt, conversations[from + '_sched'], function(err, reply) {
+        if (err) return;
+
+        var slotMatch = reply.match(/SLOT_BOOKED:([^\n]+)/);
+        var cleanReply = reply.replace(/SLOT_BOOKED:[^\n]+\n?/, '').trim();
+
+        if (slotMatch) {
+            var bookedTime = slotMatch[1].trim();
+            var success = bookSlot(bookedTime, from);
+            if (success) {
+                console.log('Slot booked:', bookedTime, 'for', from);
+                completed[from] = true;
+                userMode[from] = 'done';
+                sendMessage(from, cleanReply, null);
+                sendAlert(from, userPhone[from], userCity[from], bookedTime);
+            } else {
+                var newAvailable = formatAvailableSlots();
+                var sorryMsg = 'Lo siento, ese horario acaba de ser tomado. Horarios disponibles:\n' +
+                    (newAvailable || 'No hay mas horarios disponibles hoy.');
+                sendMessage(from, sorryMsg, null);
+                conversations[from + '_sched'].push({ role: 'assistant', content: sorryMsg });
+            }
+        } else {
+            sendMessage(from, cleanReply, null);
+            conversations[from + '_sched'].push({ role: 'assistant', content: cleanReply });
+
+            var lowerReply = cleanReply.toLowerCase();
+            var isDone = (
+                lowerReply.indexOf('reach out') !== -1 ||
+                lowerReply.indexOf('future opportunities') !== -1 ||
+                lowerReply.indexOf('en contacto') !== -1 ||
+                lowerReply.indexOf('oportunidades futuras') !== -1 ||
+                lowerReply.indexOf('slots are taken') !== -1 ||
+                lowerReply.indexOf('no hay mas') !== -1
+            );
+            if (isDone) {
+                completed[from] = true;
+                userMode[from] = 'done';
+            }
+        }
+    });
 }
 
 app.post('/webhook', function(req, res) {
@@ -309,7 +306,9 @@ app.post('/webhook', function(req, res) {
     if (messageText.trim().toUpperCase() === RESET_KEYWORD) {
         conversations[from] = [];
         completed[from] = false;
-        schedulingMode[from] = false;
+        userMode[from] = null;
+        userCity[from] = null;
+        userPhone[from] = null;
         sendMessage(from, 'Conversation reset. Send any message to start over.', null);
         console.log('Conversation reset for', from);
         return;
@@ -321,138 +320,124 @@ app.post('/webhook', function(req, res) {
     }
 
     console.log('Incoming from ' + from + ': ' + messageText);
+    var lowerText = messageText.toLowerCase();
 
     // ─────────────────────────────────────────────
-    // SCHEDULING MODE
+    // STEP 1 - BRAND NEW - ask returning or new
     // ─────────────────────────────────────────────
-    if (schedulingMode[from]) {
-        if (!conversations[from + '_sched']) {
-            conversations[from + '_sched'] = [];
-        }
-
-        conversations[from + '_sched'].push({
-            role: 'user',
-            content: messageText
-        });
-
-        var availableSlots = formatAvailableSlots();
-        var schedPrompt = SCHEDULING_SYSTEM_PROMPT;
-        if (availableSlots) {
-            schedPrompt = schedPrompt.replace(
-                'AVAILABLE SLOTS PLACEHOLDER - this will be replaced dynamically.',
-                'AVAILABLE SLOTS FOR TODAY WEDNESDAY MAY 20TH:\n' + availableSlots
-            );
-        } else {
-            schedPrompt = schedPrompt.replace(
-                'AVAILABLE SLOTS PLACEHOLDER - this will be replaced dynamically.',
-                'ALL SLOTS ARE FULLY BOOKED. Tell the candidate warmly that all slots are taken but someone will reach out soon.'
-            );
-        }
-
-        callClaude(schedPrompt, conversations[from + '_sched'], function(err, reply) {
-            if (err) {
-                console.error('Claude scheduling error');
-                return;
-            }
-
-            console.log('Scheduling reply to ' + from + ': ' + reply);
-
-            // Check if Claude booked a slot
-            var slotMatch = reply.match(/SLOT_BOOKED:([^\n]+)/);
-            var cleanReply = reply.replace(/SLOT_BOOKED:[^\n]+\n?/, '').trim();
-
-            if (slotMatch) {
-                var bookedTime = slotMatch[1].trim();
-                var success = bookSlot(bookedTime, from);
-                if (success) {
-                    console.log('Slot booked:', bookedTime, 'for', from);
-                    completed[from] = true;
-                    sendMessage(from, cleanReply, null);
-                    var summary = buildSummary(from, conversations[from] || [], bookedTime);
-                    sendAlert(summary);
-                } else {
-                    // Slot was taken between offer and selection
-                    var newAvailable = formatAvailableSlots();
-                    var sorryMsg = conversations[from + '_sched'][0].content.toLowerCase().indexOf('hola') !== -1 ||
-                        reply.toLowerCase().indexOf('perfecto') !== -1 ?
-                        'Lo siento, ese horario acaba de ser tomado. Estos son los horarios que quedan:\n' + (newAvailable || 'No hay mas horarios disponibles hoy.') :
-                        'Sorry, that slot was just taken. Here are the remaining times:\n' + (newAvailable || 'No more slots available today.');
-                    sendMessage(from, sorryMsg, null);
-                    conversations[from + '_sched'].push({ role: 'assistant', content: sorryMsg });
-                }
-            } else {
-                sendMessage(from, cleanReply, null);
-                conversations[from + '_sched'].push({ role: 'assistant', content: cleanReply });
-
-                // Check if they were told no slots or not Greeley or cant start Thursday
-                var lowerReply = cleanReply.toLowerCase();
-                var isDone = (
-                    lowerReply.indexOf('reach out soon') !== -1 ||
-                    lowerReply.indexOf('future opportunities') !== -1 ||
-                    lowerReply.indexOf('en contacto pronto') !== -1 ||
-                    lowerReply.indexOf('oportunidades futuras') !== -1
-                );
-                if (isDone) {
-                    completed[from] = true;
-                }
-            }
-        });
+    if (!userMode[from]) {
+        userMode[from] = 'greeting';
+        var greetingMsg = lowerText.indexOf('hola') !== -1 ||
+            lowerText.indexOf('buenos') !== -1 ||
+            lowerText.indexOf('buenas') !== -1 ||
+            lowerText.indexOf('trabajo') !== -1 ?
+            'Hola! Gracias por tu interes en Shynex House Cleaning. Disculpa si ya habiamos hablado antes — soy un asistente de IA y nuestro sistema se reinicio ayer. Solo quiero asegurarme de darte el mejor servicio. Ya habiamos hablado antes o eres nuevo/a?' :
+            'Hi! Thanks for your interest in Shynex House Cleaning. Apologies if we have spoken before — I am an AI assistant and our system reset yesterday. I just want to make sure I take care of you properly. Have we spoken before or are you new?';
+        sendMessage(from, greetingMsg, null);
         return;
     }
 
     // ─────────────────────────────────────────────
-    // NORMAL SCREENING MODE
+    // STEP 2 - GREETING SENT - check returning or new
     // ─────────────────────────────────────────────
-    if (!conversations[from]) {
-        conversations[from] = [];
-        console.log('New applicant:', from);
+    if (userMode[from] === 'greeting') {
+        var isReturning = (
+            lowerText.indexOf('si') !== -1 ||
+            lowerText.indexOf('yes') !== -1 ||
+            lowerText.indexOf('ya') !== -1 ||
+            lowerText.indexOf('hablamos') !== -1 ||
+            lowerText.indexOf('spoke') !== -1 ||
+            lowerText.indexOf('before') !== -1 ||
+            lowerText.indexOf('hable') !== -1
+        );
+        if (isReturning) {
+            userMode[from] = 'city_check';
+            var cityMsg = lowerText.indexOf('si') !== -1 || lowerText.indexOf('ya') !== -1 || lowerText.indexOf('hablamos') !== -1 ?
+                'Perfecto! En que ciudad vives?' :
+                'Perfect! What city do you live in?';
+            sendMessage(from, cityMsg, null);
+        } else {
+            userMode[from] = 'screening';
+            conversations[from] = [{ role: 'user', content: messageText }];
+            callClaude(SCREENING_PROMPT, conversations[from], function(err, reply) {
+                if (err) return;
+                conversations[from].push({ role: 'assistant', content: reply });
+                sendMessage(from, reply, null);
+            });
+        }
+        return;
     }
 
-    conversations[from].push({
-        role: 'user',
-        content: messageText
-    });
+    // ─────────────────────────────────────────────
+    // STEP 3 - CITY CHECK for returning candidates
+    // ─────────────────────────────────────────────
+    if (userMode[from] === 'city_check') {
+        userCity[from] = messageText.trim();
+        userMode[from] = 'scheduling';
+        handleScheduling(from, messageText);
+        return;
+    }
 
-    callClaude(SYSTEM_PROMPT, conversations[from], function(err, reply) {
-        if (err) {
-            console.error('Failed to get Claude response');
-            return;
-        }
+    // ─────────────────────────────────────────────
+    // STEP 4 - SCHEDULING MODE
+    // ─────────────────────────────────────────────
+    if (userMode[from] === 'scheduling') {
+        handleScheduling(from, messageText);
+        return;
+    }
 
-        console.log('Claude reply to ' + from + ': ' + reply);
+    // ─────────────────────────────────────────────
+    // STEP 5 - SCREENING MODE for new applicants
+    // ─────────────────────────────────────────────
+    if (userMode[from] === 'screening') {
+        if (!conversations[from]) conversations[from] = [];
+        conversations[from].push({ role: 'user', content: messageText });
 
-        conversations[from].push({
-            role: 'assistant',
-            content: reply
+        callClaude(SCREENING_PROMPT, conversations[from], function(err, reply) {
+            if (err) return;
+
+            conversations[from].push({ role: 'assistant', content: reply });
+            sendMessage(from, reply, null);
+
+            var lowerReply = reply.toLowerCase();
+
+            // Extract city when Claude asks about it
+            var asksCity = lowerReply.indexOf('city') !== -1 || lowerReply.indexOf('ciudad') !== -1 || lowerReply.indexOf('vives') !== -1;
+            if (!asksCity && !userCity[from] && messageText.length < 40) {
+                var prevMsg = conversations[from].length > 1 ? conversations[from][conversations[from].length - 2] : null;
+                if (prevMsg && prevMsg.role === 'assistant') {
+                    var prevLower = prevMsg.content.toLowerCase();
+                    if (prevLower.indexOf('city') !== -1 || prevLower.indexOf('ciudad') !== -1 || prevLower.indexOf('vives') !== -1) {
+                        userCity[from] = messageText.trim();
+                    }
+                }
+            }
+
+            var isDisqualified = (
+                lowerReply.indexOf('not the right fit') !== -1 ||
+                lowerReply.indexOf('no es la indicada') !== -1
+            );
+            var screeningComplete = (
+                lowerReply.indexOf('within the next 24 hours') !== -1 ||
+                lowerReply.indexOf('en las proximas 24 horas') !== -1
+            );
+
+            if (isDisqualified) {
+                completed[from] = true;
+                userMode[from] = 'done';
+                console.log('Disqualified:', from);
+            }
+
+            if (screeningComplete) {
+                console.log('Screening complete, moving to scheduling:', from);
+                userMode[from] = 'scheduling';
+                sendAlert(from, userPhone[from], userCity[from], null);
+            }
         });
-
-        sendMessage(from, reply, null);
-
-        var lowerReply = reply.toLowerCase();
-        var isDisqualified = (
-            lowerReply.indexOf('not the right fit') !== -1 ||
-            lowerReply.indexOf('no es la indicada') !== -1
-        );
-        var isComplete = (
-            lowerReply.indexOf('within the next 24 hours to confirm') !== -1 ||
-            lowerReply.indexOf('en las proximas 24 horas para confirmar') !== -1
-        );
-
-        if (isDisqualified) {
-            completed[from] = true;
-            console.log('Conversation completed for', from, '(DISQUALIFIED)');
-        }
-
-        if (isComplete) {
-            console.log('Screening complete for', from, '- entering scheduling mode');
-            schedulingMode[from] = true;
-        }
-    });
+        return;
+    }
 });
 
-// ─────────────────────────────────────────────
-// SLOT STATUS ENDPOINT - see who booked what
-// ─────────────────────────────────────────────
 app.get('/slots', function(req, res) {
     var result = [];
     for (var i = 0; i < slots.length; i++) {
