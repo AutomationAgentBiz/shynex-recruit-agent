@@ -11,8 +11,60 @@ var OPENPHONE_FROM_NUMBER = process.env.OPENPHONE_FROM_NUMBER;
 var RESET_KEYWORD = 'SHYNEXRESET';
 var ALERT_NUMBER = '+19706463345';
 
+// ─────────────────────────────────────────────
+// AVAILABLE CALL SLOTS - Wednesday May 20th MDT
+// ─────────────────────────────────────────────
+var slots = [
+    { time: '3:00 PM', booked: false, bookedBy: null },
+    { time: '3:15 PM', booked: false, bookedBy: null },
+    { time: '3:30 PM', booked: false, bookedBy: null },
+    { time: '3:45 PM', booked: false, bookedBy: null },
+    { time: '4:00 PM', booked: false, bookedBy: null },
+    { time: '4:15 PM', booked: false, bookedBy: null },
+    { time: '4:30 PM', booked: false, bookedBy: null },
+    { time: '4:45 PM', booked: false, bookedBy: null },
+    { time: '5:00 PM', booked: false, bookedBy: null },
+    { time: '5:15 PM', booked: false, bookedBy: null },
+    { time: '5:30 PM', booked: false, bookedBy: null },
+    { time: '5:45 PM', booked: false, bookedBy: null },
+    { time: '6:00 PM', booked: false, bookedBy: null },
+    { time: '6:15 PM', booked: false, bookedBy: null }
+];
+
+function getAvailableSlots() {
+    var available = [];
+    for (var i = 0; i < slots.length; i++) {
+        if (!slots[i].booked) {
+            available.push(slots[i].time);
+        }
+    }
+    return available;
+}
+
+function bookSlot(time, phone) {
+    for (var i = 0; i < slots.length; i++) {
+        if (slots[i].time === time && !slots[i].booked) {
+            slots[i].booked = true;
+            slots[i].bookedBy = phone;
+            return true;
+        }
+    }
+    return false;
+}
+
+function formatAvailableSlots() {
+    var available = getAvailableSlots();
+    if (available.length === 0) return null;
+    var list = '';
+    for (var i = 0; i < available.length; i++) {
+        list += '- ' + available[i] + '\n';
+    }
+    return list.trim();
+}
+
 var conversations = {};
 var completed = {};
+var schedulingMode = {};
 
 var SYSTEM_PROMPT =
 "You are a bilingual (English/Spanish) AI recruiting assistant for Shynex House Cleaning, " +
@@ -108,6 +160,33 @@ var SYSTEM_PROMPT =
 "- If they go off topic, gently redirect back to the next screening question.\n" +
 "- If they ask something you do not know, say a team member will go over that at the meeting.";
 
+var SCHEDULING_SYSTEM_PROMPT =
+"You are a bilingual (English/Spanish) scheduling assistant for Shynex House Cleaning. " +
+"Your only job right now is to help a candidate book a call slot for today Wednesday May 20th. " +
+"Be warm, friendly, and conversational.\n\n" +
+
+"LANGUAGE RULE:\n" +
+"- Match the language the candidate is using. Spanish if they write Spanish, English if they write English.\n\n" +
+
+"YOUR FLOW:\n" +
+"1. First ask if they can start this Thursday May 21st at 8am if hired.\n" +
+"   - If YES and they live in Greeley: offer them the available slots listed below.\n" +
+"   - If YES but they do not live in Greeley: tell them warmly that right now we are scheduling Greeley locals first " +
+"but that someone will be in touch with them soon about next steps.\n" +
+"   - If NO they cannot start Thursday: tell them warmly that someone will reach out about future opportunities " +
+"and thank them for their time.\n\n" +
+"2. When offering slots present them clearly and ask which time works best.\n\n" +
+"3. When they pick a slot respond with the EXACT phrase 'SLOT_BOOKED:[time]' on its own line " +
+"followed by a confirmation message.\n" +
+"   English confirmation: 'Perfect! You are booked for a call at [time] today. " +
+"Someone from our team will call you then. We look forward to speaking with you!'\n" +
+"   Spanish confirmation: 'Perfecto! Quedas agendado/a para una llamada a las [time] hoy. " +
+"Alguien de nuestro equipo te llamara a esa hora. Esperamos hablar contigo!'\n\n" +
+"4. If they ask for a slot that is no longer available, apologize and offer the remaining slots.\n" +
+"5. If there are no slots left, tell them all slots are taken but someone will reach out soon.\n\n" +
+"AVAILABLE SLOTS PLACEHOLDER - this will be replaced dynamically.\n\n" +
+"IMPORTANT: Never skip step 1. Always ask about Thursday availability first before offering slots.";
+
 
 function sendMessage(to, content, callback) {
     axios.post('https://api.openphone.com/v1/messages', {
@@ -139,11 +218,11 @@ function sendAlert(summary) {
     });
 }
 
-function callClaude(messages, callback) {
+function callClaude(systemPrompt, messages, callback) {
     axios.post('https://api.anthropic.com/v1/messages', {
         model: 'claude-sonnet-4-6',
         max_tokens: 500,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: messages
     }, {
         headers: {
@@ -161,7 +240,7 @@ function callClaude(messages, callback) {
     });
 }
 
-function buildSummary(from, history) {
+function buildSummary(from, history, bookedTime) {
     var name = 'Unknown';
     var city = 'Unknown';
     var contact = 'Unknown';
@@ -169,8 +248,6 @@ function buildSummary(from, history) {
 
     for (var i = 0; i < history.length; i++) {
         var msg = history[i];
-
-        // Find name by looking for Claude asking for name then grabbing the next user reply
         if (msg.role === 'assistant') {
             var assistantText = msg.content.toLowerCase();
             var asksForName = (
@@ -183,14 +260,12 @@ function buildSummary(from, history) {
                 name = history[i + 1].content.trim();
             }
         }
-
         if (msg.role === 'user') {
             var text = msg.content.toLowerCase();
             if (text.indexOf('greeley') !== -1) {
                 city = 'Greeley';
                 isGreeley = true;
             } else if (i > 1 && i < 7 && city === 'Unknown' && msg.content.length < 40) {
-                // Likely a city answer - short response after first few messages
                 var prevAssistant = i > 0 ? history[i - 1] : null;
                 if (prevAssistant && prevAssistant.role === 'assistant') {
                     var prevText = prevAssistant.content.toLowerCase();
@@ -205,12 +280,14 @@ function buildSummary(from, history) {
     }
 
     var tag = isGreeley ? 'GREELEY - URGENT' : 'NON-GREELEY - FUTURE';
+    var callInfo = bookedTime ? 'Call booked: ' + bookedTime + ' today (Wed May 20)' : 'No call booked yet';
 
     return 'SHYNEX NEW CANDIDATE [' + tag + ']\n' +
            'Name: ' + name + '\n' +
            'City: ' + city + '\n' +
            'Contact: ' + contact + '\n' +
            'Phone: ' + from + '\n' +
+           callInfo + '\n' +
            'Check OpenPhone for full conversation.';
 }
 
@@ -218,7 +295,6 @@ app.post('/webhook', function(req, res) {
     res.status(200).json({ received: true });
 
     var body = req.body;
-
     if (!body || body.type !== 'message.received') return;
 
     var obj = body.data && body.data.object;
@@ -233,6 +309,7 @@ app.post('/webhook', function(req, res) {
     if (messageText.trim().toUpperCase() === RESET_KEYWORD) {
         conversations[from] = [];
         completed[from] = false;
+        schedulingMode[from] = false;
         sendMessage(from, 'Conversation reset. Send any message to start over.', null);
         console.log('Conversation reset for', from);
         return;
@@ -245,6 +322,87 @@ app.post('/webhook', function(req, res) {
 
     console.log('Incoming from ' + from + ': ' + messageText);
 
+    // ─────────────────────────────────────────────
+    // SCHEDULING MODE
+    // ─────────────────────────────────────────────
+    if (schedulingMode[from]) {
+        if (!conversations[from + '_sched']) {
+            conversations[from + '_sched'] = [];
+        }
+
+        conversations[from + '_sched'].push({
+            role: 'user',
+            content: messageText
+        });
+
+        var availableSlots = formatAvailableSlots();
+        var schedPrompt = SCHEDULING_SYSTEM_PROMPT;
+        if (availableSlots) {
+            schedPrompt = schedPrompt.replace(
+                'AVAILABLE SLOTS PLACEHOLDER - this will be replaced dynamically.',
+                'AVAILABLE SLOTS FOR TODAY WEDNESDAY MAY 20TH:\n' + availableSlots
+            );
+        } else {
+            schedPrompt = schedPrompt.replace(
+                'AVAILABLE SLOTS PLACEHOLDER - this will be replaced dynamically.',
+                'ALL SLOTS ARE FULLY BOOKED. Tell the candidate warmly that all slots are taken but someone will reach out soon.'
+            );
+        }
+
+        callClaude(schedPrompt, conversations[from + '_sched'], function(err, reply) {
+            if (err) {
+                console.error('Claude scheduling error');
+                return;
+            }
+
+            console.log('Scheduling reply to ' + from + ': ' + reply);
+
+            // Check if Claude booked a slot
+            var slotMatch = reply.match(/SLOT_BOOKED:([^\n]+)/);
+            var cleanReply = reply.replace(/SLOT_BOOKED:[^\n]+\n?/, '').trim();
+
+            if (slotMatch) {
+                var bookedTime = slotMatch[1].trim();
+                var success = bookSlot(bookedTime, from);
+                if (success) {
+                    console.log('Slot booked:', bookedTime, 'for', from);
+                    completed[from] = true;
+                    sendMessage(from, cleanReply, null);
+                    var summary = buildSummary(from, conversations[from] || [], bookedTime);
+                    sendAlert(summary);
+                } else {
+                    // Slot was taken between offer and selection
+                    var newAvailable = formatAvailableSlots();
+                    var sorryMsg = conversations[from + '_sched'][0].content.toLowerCase().indexOf('hola') !== -1 ||
+                        reply.toLowerCase().indexOf('perfecto') !== -1 ?
+                        'Lo siento, ese horario acaba de ser tomado. Estos son los horarios que quedan:\n' + (newAvailable || 'No hay mas horarios disponibles hoy.') :
+                        'Sorry, that slot was just taken. Here are the remaining times:\n' + (newAvailable || 'No more slots available today.');
+                    sendMessage(from, sorryMsg, null);
+                    conversations[from + '_sched'].push({ role: 'assistant', content: sorryMsg });
+                }
+            } else {
+                sendMessage(from, cleanReply, null);
+                conversations[from + '_sched'].push({ role: 'assistant', content: cleanReply });
+
+                // Check if they were told no slots or not Greeley or cant start Thursday
+                var lowerReply = cleanReply.toLowerCase();
+                var isDone = (
+                    lowerReply.indexOf('reach out soon') !== -1 ||
+                    lowerReply.indexOf('future opportunities') !== -1 ||
+                    lowerReply.indexOf('en contacto pronto') !== -1 ||
+                    lowerReply.indexOf('oportunidades futuras') !== -1
+                );
+                if (isDone) {
+                    completed[from] = true;
+                }
+            }
+        });
+        return;
+    }
+
+    // ─────────────────────────────────────────────
+    // NORMAL SCREENING MODE
+    // ─────────────────────────────────────────────
     if (!conversations[from]) {
         conversations[from] = [];
         console.log('New applicant:', from);
@@ -255,7 +413,7 @@ app.post('/webhook', function(req, res) {
         content: messageText
     });
 
-    callClaude(conversations[from], function(err, reply) {
+    callClaude(SYSTEM_PROMPT, conversations[from], function(err, reply) {
         if (err) {
             console.error('Failed to get Claude response');
             return;
@@ -276,8 +434,6 @@ app.post('/webhook', function(req, res) {
             lowerReply.indexOf('no es la indicada') !== -1
         );
         var isComplete = (
-            lowerReply.indexOf('look forward to meeting') !== -1 ||
-            lowerReply.indexOf('esperamos conocerte') !== -1 ||
             lowerReply.indexOf('within the next 24 hours to confirm') !== -1 ||
             lowerReply.indexOf('en las proximas 24 horas para confirmar') !== -1
         );
@@ -288,12 +444,25 @@ app.post('/webhook', function(req, res) {
         }
 
         if (isComplete) {
-            completed[from] = true;
-            console.log('Conversation completed for', from, '(QUALIFIED)');
-            var summary = buildSummary(from, conversations[from]);
-            sendAlert(summary);
+            console.log('Screening complete for', from, '- entering scheduling mode');
+            schedulingMode[from] = true;
         }
     });
+});
+
+// ─────────────────────────────────────────────
+// SLOT STATUS ENDPOINT - see who booked what
+// ─────────────────────────────────────────────
+app.get('/slots', function(req, res) {
+    var result = [];
+    for (var i = 0; i < slots.length; i++) {
+        result.push({
+            time: slots[i].time,
+            booked: slots[i].booked,
+            bookedBy: slots[i].bookedBy || 'available'
+        });
+    }
+    res.json(result);
 });
 
 app.get('/', function(req, res) {
