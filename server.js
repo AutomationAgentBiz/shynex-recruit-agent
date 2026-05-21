@@ -12,10 +12,10 @@ var RESET_KEYWORD = 'SHYNEXRESET';
 var ALERT_NUMBER = '+19706463345';
 
 var slots = [
-    { time: '3:00 PM', booked: false, bookedBy: null },
-    { time: '3:15 PM', booked: false, bookedBy: null },
+    { time: '3:00 PM', booked: true, bookedBy: 'manual' },
+    { time: '3:15 PM', booked: true, bookedBy: 'manual' },
     { time: '3:30 PM', booked: false, bookedBy: null },
-    { time: '3:45 PM', booked: false, bookedBy: null },
+    { time: '3:45 PM', booked: true, bookedBy: 'manual' },
     { time: '4:00 PM', booked: false, bookedBy: null },
     { time: '4:15 PM', booked: false, bookedBy: null },
     { time: '4:30 PM', booked: false, bookedBy: null },
@@ -24,8 +24,8 @@ var slots = [
     { time: '5:15 PM', booked: false, bookedBy: null },
     { time: '5:30 PM', booked: false, bookedBy: null },
     { time: '5:45 PM', booked: false, bookedBy: null },
-    { time: '6:00 PM', booked: false, bookedBy: null },
-    { time: '6:15 PM', booked: false, bookedBy: null }
+    { time: '6:00 PM', booked: true, bookedBy: 'manual' },
+    { time: '6:15 PM', booked: true, bookedBy: 'manual' }
 ];
 
 function getAvailableSlots() {
@@ -448,6 +448,42 @@ app.get('/slots', function(req, res) {
         });
     }
     res.json(result);
+});
+
+// ─────────────────────────────────────────────
+// PLAIN TEXT CLAUDE ENDPOINT FOR TASKER
+// GET /ask?q=your+question+here
+// Returns plain text response only - no JSON
+// ─────────────────────────────────────────────
+app.get('/ask', function(req, res) {
+    var question = req.query.q;
+    if (!question) {
+        res.set('Content-Type', 'text/plain');
+        res.send('No question provided.');
+        return;
+    }
+
+    axios.post('https://api.anthropic.com/v1/messages', {
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        system: 'You are a helpful business assistant for Pete, owner of Shynex House Cleaning in Northern Colorado. Keep responses concise and spoken-word friendly - no bullet points, no markdown, just natural conversational sentences. Max 3-4 sentences unless asked for more.',
+        messages: [{ role: 'user', content: question }]
+    }, {
+        headers: {
+            'x-api-key': CLAUDE_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json'
+        }
+    }).then(function(response) {
+        var text = response.data.content[0].text;
+        res.set('Content-Type', 'text/plain');
+        res.send(text);
+    }).catch(function(error) {
+        var msg = error.response ? JSON.stringify(error.response.data) : error.message;
+        console.error('Claude ask error:', msg);
+        res.set('Content-Type', 'text/plain');
+        res.send('Sorry I could not get a response right now.');
+    });
 });
 
 app.get('/', function(req, res) {
