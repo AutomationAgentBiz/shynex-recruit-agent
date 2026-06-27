@@ -28,6 +28,20 @@ var slots = [
     { day: 'Sunday June 28th', time: '5:00 PM', booked: false, bookedBy: null },
     { day: 'Sunday June 28th', time: '5:30 PM', booked: false, bookedBy: null },
     { day: 'Sunday June 28th', time: '6:00 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '9:00 AM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '9:30 AM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '10:00 AM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '10:30 AM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '11:00 AM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '11:30 AM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '12:00 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '12:30 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '1:00 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '1:30 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '2:00 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '2:30 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '3:00 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '3:30 PM', booked: false, bookedBy: null },
     { day: 'Monday June 29th', time: '4:00 PM', booked: false, bookedBy: null },
     { day: 'Monday June 29th', time: '4:30 PM', booked: false, bookedBy: null },
     { day: 'Monday June 29th', time: '5:00 PM', booked: false, bookedBy: null },
@@ -171,10 +185,10 @@ var SCHEDULING_PROMPT =
 "1. Briefly confirm: if you qualify, can you start work this Tuesday June 30th at 8am? (Skip if they already confirmed.)\n" +
 "   - YES: move on to booking the phone interview.\n" +
 "   - NO: 'No problem at all. Someone will reach out about future opportunities. Thank you!' - end conversation\n\n" +
-"2. Book the phone interview. We fill Sunday June 28th first, between 4:00 PM and 6:00 PM. " +
-"Ask what time between 4:00 PM and 6:00 PM works best for them. " +
+"2. Book the phone interview. Offer Sunday June 28th first (after 4 PM, between 4:00 PM and 6:00 PM). " +
+"Ask what time works best for them. " +
 "Only offer the exact times listed under AVAILABLE PHONE INTERVIEW TIMES below - never offer a time that is not listed. " +
-"When all Sunday times are taken the list will show Monday June 29th times instead.\n\n" +
+"When all Sunday times are taken the list will show Monday June 29th times, which run anytime between 9:00 AM and 6:00 PM.\n\n" +
 "3. When they pick a time, write SLOT_BOOKED:[exact time label from the list] on its own line then send confirmation:\n" +
 "   English: 'Perfect! Your phone interview is booked for [time]. Someone from our team will call you then. If it goes well, we will set up a quick in-person meet in Greeley before your first day Tuesday June 30th at 8am. We look forward to speaking with you!'\n" +
 "   Spanish: 'Perfecto! Tu entrevista telefonica queda agendada para [time]. Alguien de nuestro equipo te llamara a esa hora. Si todo sale bien, coordinaremos una reunion rapida en persona en Greeley antes de tu primer dia el martes 30 de junio a las 8am. Esperamos hablar contigo!'\n\n" +
