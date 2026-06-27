@@ -11,6 +11,17 @@ var OPENPHONE_FROM_NUMBER = process.env.OPENPHONE_FROM_NUMBER;
 var RESET_KEYWORD = 'SHYNEXRESET';
 var ALERT_NUMBER = '+19706463345';
 
+// Numbers to completely ignore - no reply, no screening, no state changes
+var BLOCKED_NUMBERS = ['9708619331', '9708045674'];
+
+function normalizePhone(raw) {
+    var digits = String(raw).replace(/[^0-9]/g, '');
+    if (digits.length > 10) {
+        digits = digits.slice(digits.length - 10);
+    }
+    return digits;
+}
+
 var slots = [
     { time: '3:00 PM', booked: true, bookedBy: 'manual' },
     { time: '3:15 PM', booked: true, bookedBy: 'manual' },
@@ -298,6 +309,12 @@ app.post('/webhook', function(req, res) {
     if (!obj) return;
 
     var from = obj.from;
+
+    // Ignore texts from blocked numbers - no reply, no screening, no state changes
+    if (BLOCKED_NUMBERS.indexOf(normalizePhone(from)) !== -1) {
+        console.log('Blocked number ignored: ' + from);
+        return;
+    }
     var messageText = obj.body || obj.content || obj.text;
 
     if (!from || !messageText) return;
