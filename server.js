@@ -128,9 +128,10 @@ var SCREENING_PROMPT =
 "4. Are you available to start this Tuesday June 30th at 8am if you qualify?\n" +
 "5. Do you have your own reliable transportation to get to the job sites?\n" +
 "6. Do you have a helper who could work alongside you? (It is okay if not.)\n" +
-"7. Do you have any cleaning experience?\n" +
-"8. Is there anything that might get in the way of starting this week?\n" +
-"9. Best way to reach you - phone or WhatsApp?\n\n" +
+"7. Do you have your own cleaning supplies? (It is okay if not.)\n" +
+"8. Do you have any cleaning experience?\n" +
+"9. Is there anything that might get in the way of starting this week?\n" +
+"10. Best way to reach you - phone or WhatsApp?\n\n" +
 
 "DISQUALIFY ONLY IF:\n" +
 "- Cannot start work this Tuesday June 30th\n" +
