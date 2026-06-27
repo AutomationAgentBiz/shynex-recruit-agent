@@ -23,33 +23,40 @@ function normalizePhone(raw) {
 }
 
 var slots = [
-    { time: '3:00 PM', booked: true, bookedBy: 'manual' },
-    { time: '3:15 PM', booked: true, bookedBy: 'manual' },
-    { time: '3:30 PM', booked: false, bookedBy: null },
-    { time: '3:45 PM', booked: true, bookedBy: 'manual' },
-    { time: '4:00 PM', booked: false, bookedBy: null },
-    { time: '4:15 PM', booked: false, bookedBy: null },
-    { time: '4:30 PM', booked: false, bookedBy: null },
-    { time: '4:45 PM', booked: false, bookedBy: null },
-    { time: '5:00 PM', booked: false, bookedBy: null },
-    { time: '5:15 PM', booked: false, bookedBy: null },
-    { time: '5:30 PM', booked: false, bookedBy: null },
-    { time: '5:45 PM', booked: false, bookedBy: null },
-    { time: '6:00 PM', booked: true, bookedBy: 'manual' },
-    { time: '6:15 PM', booked: true, bookedBy: 'manual' }
+    { day: 'Sunday June 28th', time: '4:00 PM', booked: false, bookedBy: null },
+    { day: 'Sunday June 28th', time: '4:30 PM', booked: false, bookedBy: null },
+    { day: 'Sunday June 28th', time: '5:00 PM', booked: false, bookedBy: null },
+    { day: 'Sunday June 28th', time: '5:30 PM', booked: false, bookedBy: null },
+    { day: 'Sunday June 28th', time: '6:00 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '4:00 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '4:30 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '5:00 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '5:30 PM', booked: false, bookedBy: null },
+    { day: 'Monday June 29th', time: '6:00 PM', booked: false, bookedBy: null }
 ];
 
-function getAvailableSlots() {
-    var available = [];
-    for (var i = 0; i < slots.length; i++) {
-        if (!slots[i].booked) available.push(slots[i].time);
-    }
-    return available;
+function slotLabel(slot) {
+    return slot.day + ' at ' + slot.time;
 }
 
-function bookSlot(time, phone) {
+function getAvailableSlots() {
+    // Fill Sunday first; only show Monday once all Sunday times are booked
+    var sunday = [];
+    var monday = [];
     for (var i = 0; i < slots.length; i++) {
-        if (slots[i].time === time && !slots[i].booked) {
+        if (slots[i].booked) continue;
+        if (slots[i].day.indexOf('Sunday') !== -1) {
+            sunday.push(slots[i]);
+        } else {
+            monday.push(slots[i]);
+        }
+    }
+    return sunday.length > 0 ? sunday : monday;
+}
+
+function bookSlot(label, phone) {
+    for (var i = 0; i < slots.length; i++) {
+        if (slotLabel(slots[i]) === label && !slots[i].booked) {
             slots[i].booked = true;
             slots[i].bookedBy = phone;
             return true;
@@ -63,7 +70,7 @@ function formatAvailableSlots() {
     if (available.length === 0) return null;
     var list = '';
     for (var i = 0; i < available.length; i++) {
-        list += '- ' + available[i] + '\n';
+        list += '- ' + slotLabel(available[i]) + '\n';
     }
     return list.trim();
 }
@@ -120,29 +127,21 @@ var SCREENING_PROMPT =
 "1. Name\n" +
 "2. SPANISH ONLY: Hablas algo de ingles?\n" +
 "3. What city do you live in?\n" +
-"4. Are you available to start this Thursday May 21st at 8am?\n" +
+"4. Are you available to start this Tuesday June 30th at 8am if you qualify?\n" +
 "5. Do you have any cleaning experience?\n" +
 "6. Is there anything that might get in the way of starting this week?\n" +
 "7. Best way to reach you - phone or WhatsApp?\n\n" +
 
 "DISQUALIFY ONLY IF:\n" +
-"- Cannot start this week or not available Thursday May 21st\n" +
+"- Cannot start work this Tuesday June 30th\n" +
 "- Rude or hostile\n\n" +
 
 "DISQUALIFICATION - English: 'Thank you for your interest. Unfortunately this position is not the right fit at this time, but if anything changes we will reach out. We appreciate your time.'\n" +
 "DISQUALIFICATION - Spanish: 'Gracias por tu interes. Desafortunadamente esta posicion no es la indicada en este momento, pero si algo cambia nos comunicaremos. Apreciamos tu tiempo.'\n\n" +
 
-"AFTER ALL QUESTIONS ANSWERED - ask about meetup:\n" +
-"English: 'Great news! If selected, we do a quick in-person meet in Greeley before your first day - nothing formal, just a chance to connect. Would you be available this Wednesday May 20th? What time works?'\n" +
-"Spanish: 'Buenas noticias! Si eres seleccionado/a, hacemos una reunion rapida en Greeley antes de tu primer dia - nada formal, solo para conocernos. Estarias disponible este miercoles 20 de mayo? Que hora te funciona?'\n\n" +
-
-"AFTER MEETUP TIME - ask best call time:\n" +
-"English: 'Almost done! What is the best time to call you in the next 24 hours?'\n" +
-"Spanish: 'Casi terminamos! Cual es el mejor momento para llamarte en las proximas 24 horas?'\n\n" +
-
-"AFTER CALL TIME - closing:\n" +
-"English: 'Perfect. Someone from our team will call you within the next 24 hours. Please reply CONFIRMED tonight by 8pm to hold your spot. We look forward to meeting you!'\n" +
-"Spanish: 'Perfecto. Alguien de nuestro equipo te llamara en las proximas 24 horas. Por favor responde CONFIRMADO esta noche antes de las 8pm para reservar tu lugar. Esperamos conocerte!'\n\n" +
+"AFTER ALL QUESTIONS ANSWERED - send this closing to move them to scheduling a phone interview:\n" +
+"English: 'You are a great fit! The next step is a quick phone interview this Sunday or Monday after 4pm. Reply READY and I will share the available phone interview times.'\n" +
+"Spanish: 'Eres ideal para el puesto! El siguiente paso es una entrevista telefonica rapida este domingo o lunes despues de las 4pm. Responde LISTO y te comparto los horarios disponibles para la entrevista telefonica.'\n\n" +
 
 "COMMON QUESTIONS:\n" +
 "- Pay: $20/hr training, $25-35/hr contractor after 30 days\n" +
@@ -159,23 +158,25 @@ var SCREENING_PROMPT =
 
 var SCHEDULING_PROMPT =
 "You are a bilingual (English/Spanish) scheduling assistant for Shynex House Cleaning. " +
-"Your only job is to book a call slot for today Wednesday May 20th.\n\n" +
+"Your only job is to book a phone interview for Sunday June 28th or Monday June 29th.\n\n" +
 
 "LANGUAGE RULE: Match the candidate's language.\n\n" +
 
 "YOUR FLOW:\n" +
-"1. First ask: Can you start this Thursday May 21st at 8am if hired?\n" +
-"   - YES + Greeley: offer available slots\n" +
-"   - YES + not Greeley: 'We are scheduling Greeley locals first but someone will be in touch soon about next steps. Thank you!' — end conversation\n" +
-"   - NO: 'No problem at all. Someone will reach out about future opportunities. Thank you!' — end conversation\n\n" +
-"2. Present available slots clearly and ask which works best.\n\n" +
-"3. When they pick a slot write SLOT_BOOKED:[time] on its own line then send confirmation:\n" +
-"   English: 'Perfect! You are booked for a call at [time] today Wednesday. Someone from our team will call you then. We look forward to speaking with you!'\n" +
-"   Spanish: 'Perfecto! Quedas agendado/a para una llamada a las [time] hoy miercoles. Alguien de nuestro equipo te llamara a esa hora. Esperamos hablar contigo!'\n\n" +
-"4. If slot taken, apologize and offer remaining slots.\n" +
-"5. If no slots left: 'All slots are taken but someone will reach out to you soon.'\n\n" +
+"1. Briefly confirm: if you qualify, can you start work this Tuesday June 30th at 8am? (Skip if they already confirmed.)\n" +
+"   - YES: move on to booking the phone interview.\n" +
+"   - NO: 'No problem at all. Someone will reach out about future opportunities. Thank you!' - end conversation\n\n" +
+"2. Book the phone interview. We fill Sunday June 28th first, between 4:00 PM and 6:00 PM. " +
+"Ask what time between 4:00 PM and 6:00 PM works best for them. " +
+"Only offer the exact times listed under AVAILABLE PHONE INTERVIEW TIMES below - never offer a time that is not listed. " +
+"When all Sunday times are taken the list will show Monday June 29th times instead.\n\n" +
+"3. When they pick a time, write SLOT_BOOKED:[exact time label from the list] on its own line then send confirmation:\n" +
+"   English: 'Perfect! Your phone interview is booked for [time]. Someone from our team will call you then. If it goes well, we will set up a quick in-person meet in Greeley before your first day Tuesday June 30th at 8am. We look forward to speaking with you!'\n" +
+"   Spanish: 'Perfecto! Tu entrevista telefonica queda agendada para [time]. Alguien de nuestro equipo te llamara a esa hora. Si todo sale bien, coordinaremos una reunion rapida en persona en Greeley antes de tu primer dia el martes 30 de junio a las 8am. Esperamos hablar contigo!'\n\n" +
+"4. If a time is taken, apologize and offer the remaining listed times.\n" +
+"5. If no times are left: 'All interview times are taken but someone will reach out to you soon.'\n\n" +
 "AVAILABLE SLOTS PLACEHOLDER\n\n" +
-"IMPORTANT: Always ask about Thursday availability first before offering slots.";
+"IMPORTANT: Always confirm Tuesday June 30th 8am availability first. Only offer the exact times listed above.";
 
 function sendMessage(to, content, callback) {
     axios.post('https://api.openphone.com/v1/messages', {
@@ -200,7 +201,7 @@ function sendMessage(to, content, callback) {
 function sendAlert(from, name, city, bookedTime) {
     var isGreeley = city && city.toLowerCase().indexOf('greeley') !== -1;
     var tag = isGreeley ? 'GREELEY - URGENT' : 'NON-GREELEY - FUTURE';
-    var callInfo = bookedTime ? 'Call booked: ' + bookedTime + ' today (Wed May 20)' : 'No call booked';
+    var callInfo = bookedTime ? 'Phone interview booked: ' + bookedTime : 'No phone interview booked';
     var msg = 'SHYNEX CANDIDATE [' + tag + ']\n' +
               'Name: ' + (name || 'Unknown') + '\n' +
               'City: ' + (city || 'Unknown') + '\n' +
@@ -244,7 +245,7 @@ function handleScheduling(from, messageText) {
     if (availableSlots) {
         schedPrompt = schedPrompt.replace(
             'AVAILABLE SLOTS PLACEHOLDER',
-            'AVAILABLE SLOTS FOR TODAY WEDNESDAY MAY 20TH:\n' + availableSlots
+            'AVAILABLE PHONE INTERVIEW TIMES (offer only these):\n' + availableSlots
         );
         // inject city context
         var cityInfo = userCity[from] ? 'The candidate lives in ' + userCity[from] + '.' : '';
@@ -252,7 +253,7 @@ function handleScheduling(from, messageText) {
     } else {
         schedPrompt = schedPrompt.replace(
             'AVAILABLE SLOTS PLACEHOLDER',
-            'ALL SLOTS ARE FULLY BOOKED. Tell them warmly all slots are taken but someone will reach out soon.'
+            'ALL PHONE INTERVIEW TIMES ARE FULLY BOOKED. Tell them warmly all times are taken but someone will reach out soon.'
         );
     }
 
@@ -435,8 +436,8 @@ app.post('/webhook', function(req, res) {
                 lowerReply.indexOf('no es la indicada') !== -1
             );
             var screeningComplete = (
-                lowerReply.indexOf('within the next 24 hours') !== -1 ||
-                lowerReply.indexOf('en las proximas 24 horas') !== -1
+                lowerReply.indexOf('share the available phone interview times') !== -1 ||
+                lowerReply.indexOf('horarios disponibles para la entrevista') !== -1
             );
 
             if (isDisqualified) {
@@ -459,6 +460,7 @@ app.get('/slots', function(req, res) {
     var result = [];
     for (var i = 0; i < slots.length; i++) {
         result.push({
+            day: slots[i].day,
             time: slots[i].time,
             booked: slots[i].booked,
             bookedBy: slots[i].bookedBy || 'available'
