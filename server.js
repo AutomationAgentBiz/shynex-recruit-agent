@@ -159,15 +159,15 @@ var SCREENING_PROMPT =
 "- Pay: independent contractor, average $25-35/hr\n" +
 "- Supplies: you must bring your own cleaning supplies\n" +
 "- Transportation: you must have your own reliable transportation\n" +
-"- The work: two move-out house cleans on Tuesday June 30th\n" +
-"- Locations (share only if asked): first move-out is in Fort Collins, second is in Greeley\n" +
 "- Experience: not required\n" +
-"- Full or part time: independent contractor, jobs as we go and can build into a fuller schedule - details on the call\n\n" +
+"- Hours / schedule / part or full time: this is flexible independent contractor work, jobs as we go that can build into a fuller schedule, details on the call. Answer generally and do NOT bring up the specific upcoming job.\n" +
+"- ONLY if they specifically ask about the first or upcoming job: two move-out house cleans this Tuesday June 30th starting at 8am. Locations (only if asked): first in Fort Collins, second in Greeley.\n\n" +
 
 "RULES:\n" +
 "- One question at a time\n" +
 "- Never mention owner name\n" +
 "- Never give exact street addresses; only share the job cities (Fort Collins, Greeley) if asked\n" +
+"- For general hours or schedule questions, answer that it is flexible contractor work (jobs as we go, can build into a fuller schedule, details on the call); do not volunteer the specific upcoming Tuesday job, its date, or locations unless they specifically ask about the next job\n" +
 "- 2-4 sentences max per message";
 
 var SCHEDULING_PROMPT =
@@ -454,10 +454,21 @@ app.post('/webhook', function(req, res) {
 
             var lowerReply = reply.toLowerCase();
 
+            // Capture the candidate's name from the answer to the name question
+            if (!userPhone[from] && messageText.length < 40) {
+                var prevNameMsg = conversations[from].length >= 3 ? conversations[from][conversations[from].length - 3] : null;
+                if (prevNameMsg && prevNameMsg.role === 'assistant') {
+                    var prevNameLower = prevNameMsg.content.toLowerCase();
+                    if (prevNameLower.indexOf('your name') !== -1 || prevNameLower.indexOf('tu nombre') !== -1) {
+                        userPhone[from] = messageText.trim();
+                    }
+                }
+            }
+
             // Extract city when Claude asks about it
             var asksCity = lowerReply.indexOf('city') !== -1 || lowerReply.indexOf('ciudad') !== -1 || lowerReply.indexOf('vives') !== -1;
             if (!asksCity && !userCity[from] && messageText.length < 40) {
-                var prevMsg = conversations[from].length > 1 ? conversations[from][conversations[from].length - 2] : null;
+                var prevMsg = conversations[from].length >= 3 ? conversations[from][conversations[from].length - 3] : null;
                 if (prevMsg && prevMsg.role === 'assistant') {
                     var prevLower = prevMsg.content.toLowerCase();
                     if (prevLower.indexOf('city') !== -1 || prevLower.indexOf('ciudad') !== -1 || prevLower.indexOf('vives') !== -1) {
