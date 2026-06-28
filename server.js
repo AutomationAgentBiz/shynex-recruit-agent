@@ -90,6 +90,7 @@ var userCity = {};
 var userPhone = {};
 var conversations = {};
 var completed = {};
+var calledAlready = {};
 
 var GREETING_PROMPT =
 "You are a bilingual (English/Spanish) assistant for Shynex House Cleaning. " +
@@ -316,7 +317,29 @@ app.post('/webhook', function(req, res) {
     res.status(200).json({ received: true });
 
     var body = req.body;
-    if (!body || body.type !== 'message.received') return;
+    if (!body) return;
+
+    // ----- Unanswered incoming call: send a one-time Spanish text -----
+    if (body.type === 'call.completed') {
+        var callObj = body.data && body.data.object;
+        if (!callObj) return;
+        if (callObj.direction !== 'incoming') return;
+        if (callObj.answeredAt) return;
+        var caller = callObj.from;
+        if (!caller) return;
+        if (caller === OPENPHONE_FROM_NUMBER) return;
+        if (BLOCKED_NUMBERS.indexOf(normalizePhone(caller)) !== -1) {
+            console.log('Blocked number called, ignored: ' + caller);
+            return;
+        }
+        if (userMode[caller] || completed[caller] || calledAlready[caller]) return;
+        calledAlready[caller] = true;
+        sendMessage(caller, 'Hola! Gracias por llamar a Shynex House Cleaning. Por ahora atendemos por mensaje de texto para ver si calificas antes de agendar una llamada. Responde aqui y con gusto te ayudo a empezar!', null);
+        console.log('Missed call auto-reply sent to ' + caller);
+        return;
+    }
+
+    if (body.type !== 'message.received') return;
 
     var obj = body.data && body.data.object;
     if (!obj) return;
