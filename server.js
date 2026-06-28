@@ -54,18 +54,12 @@ function slotLabel(slot) {
 }
 
 function getAvailableSlots() {
-    // Fill Sunday first; only show Monday once all Sunday times are booked
-    var sunday = [];
-    var monday = [];
+    // Offer both Sunday and Monday; the applicant may pick either day
+    var available = [];
     for (var i = 0; i < slots.length; i++) {
-        if (slots[i].booked) continue;
-        if (slots[i].day.indexOf('Sunday') !== -1) {
-            sunday.push(slots[i]);
-        } else {
-            monday.push(slots[i]);
-        }
+        if (!slots[i].booked) available.push(slots[i]);
     }
-    return sunday.length > 0 ? sunday : monday;
+    return available;
 }
 
 function bookSlot(label, phone) {
@@ -185,10 +179,9 @@ var SCHEDULING_PROMPT =
 "1. Briefly confirm: if you qualify, can you start work this Tuesday June 30th at 8am? (Skip if they already confirmed.)\n" +
 "   - YES: move on to booking the phone interview.\n" +
 "   - NO: 'No problem at all. Someone will reach out about future opportunities. Thank you!' - end conversation\n\n" +
-"2. Book the phone interview. Offer Sunday June 28th first (after 4 PM, between 4:00 PM and 6:00 PM). " +
-"Ask what time works best for them. " +
-"Only offer the exact times listed under AVAILABLE PHONE INTERVIEW TIMES below - never offer a time that is not listed. " +
-"When all Sunday times are taken the list will show Monday June 29th times, which run anytime between 9:00 AM and 6:00 PM.\n\n" +
+"2. Book the phone interview. Offer both days: Sunday June 28th (after 4 PM, between 4:00 PM and 6:00 PM) or Monday June 29th (anytime between 9:00 AM and 6:00 PM). " +
+"Ask which day and time works best for them. " +
+"Only offer the exact times listed under AVAILABLE PHONE INTERVIEW TIMES below - never offer a time that is not listed.\n\n" +
 "3. When they pick a time, write SLOT_BOOKED:[exact time label from the list] on its own line then send confirmation:\n" +
 "   English: 'Perfect! Your phone interview is booked for [time]. Someone from our team will call you then. If it goes well, we will set up a quick in-person meet in Greeley before your first day Tuesday June 30th at 8am. We look forward to speaking with you!'\n" +
 "   Spanish: 'Perfecto! Tu entrevista telefonica queda agendada para [time]. Alguien de nuestro equipo te llamara a esa hora. Si todo sale bien, coordinaremos una reunion rapida en persona en Greeley antes de tu primer dia el martes 30 de junio a las 8am. Esperamos hablar contigo!'\n\n" +
