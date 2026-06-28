@@ -161,7 +161,7 @@ var SCREENING_PROMPT =
 "- The work: two move-out house cleans on Tuesday June 30th\n" +
 "- Locations (share only if asked): first move-out is in Fort Collins, second is in Greeley\n" +
 "- Experience: not required\n" +
-"- Full or part time: both available, details at meeting\n\n" +
+"- Full or part time: independent contractor, jobs as we go and can build into a fuller schedule - details on the call\n\n" +
 
 "RULES:\n" +
 "- One question at a time\n" +
