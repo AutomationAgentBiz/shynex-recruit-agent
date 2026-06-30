@@ -12,7 +12,7 @@ var RESET_KEYWORD = 'SHYNEXRESET';
 var ALERT_NUMBER = '+19706463345';
 
 // Numbers to completely ignore - no reply, no screening, no state changes
-var BLOCKED_NUMBERS = ['9708619331', '9708045674'];
+var BLOCKED_NUMBERS = ['9708619331', '9708045674', '9704051134'];
 
 function normalizePhone(raw) {
     var digits = String(raw).replace(/[^0-9]/g, '');
@@ -147,6 +147,7 @@ var SCREENING_PROMPT =
 "- Does not have their own transportation\n" +
 "- Does not have their own cleaning supplies\n" +
 "- Rude or hostile\n\n" +
+"BEFORE DISQUALIFYING for transportation or supplies, ask once to confirm in case they answered by mistake - only disqualify if they confirm. If they correct an earlier answer or say they made a mistake, accept it and keep screening normally.\n\n" +
 
 "DISQUALIFICATION - English: 'Thank you for your interest. Unfortunately this position is not the right fit at this time, but if anything changes we will reach out. We appreciate your time.'\n" +
 "DISQUALIFICATION - Spanish: 'Gracias por tu interes. Desafortunadamente esta posicion no es la indicada en este momento, pero si algo cambia nos comunicaremos. Apreciamos tu tiempo.'\n\n" +
@@ -487,9 +488,8 @@ app.post('/webhook', function(req, res) {
             );
 
             if (isDisqualified) {
-                completed[from] = true;
-                userMode[from] = 'done';
-                console.log('Disqualified:', from);
+                // Keep them in screening so they can correct a mistaken answer
+                console.log('Soft disqualification (left open for correction):', from);
             }
 
             if (screeningComplete) {
