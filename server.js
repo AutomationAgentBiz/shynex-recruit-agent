@@ -23,30 +23,28 @@ function normalizePhone(raw) {
 }
 
 var slots = [
-    { day: 'Sunday June 28th', time: '4:00 PM', booked: false, bookedBy: null },
-    { day: 'Sunday June 28th', time: '4:30 PM', booked: false, bookedBy: null },
-    { day: 'Sunday June 28th', time: '5:00 PM', booked: false, bookedBy: null },
-    { day: 'Sunday June 28th', time: '5:30 PM', booked: false, bookedBy: null },
-    { day: 'Sunday June 28th', time: '6:00 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '9:00 AM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '9:30 AM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '10:00 AM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '10:30 AM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '11:00 AM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '11:30 AM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '12:00 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '12:30 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '1:00 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '1:30 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '2:00 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '2:30 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '3:00 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '3:30 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '4:00 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '4:30 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '5:00 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '5:30 PM', booked: false, bookedBy: null },
-    { day: 'Monday June 29th', time: '6:00 PM', booked: false, bookedBy: null }
+    { day: 'Tuesday June 30th', time: '10:00 AM', booked: false, bookedBy: null },
+    { day: 'Tuesday June 30th', time: '10:30 AM', booked: false, bookedBy: null },
+    { day: 'Tuesday June 30th', time: '11:00 AM', booked: false, bookedBy: null },
+    { day: 'Tuesday June 30th', time: '11:30 AM', booked: false, bookedBy: null },
+    { day: 'Tuesday June 30th', time: '12:00 PM', booked: false, bookedBy: null },
+    { day: 'Tuesday June 30th', time: '12:30 PM', booked: false, bookedBy: null },
+    { day: 'Tuesday June 30th', time: '1:00 PM', booked: false, bookedBy: null },
+    { day: 'Tuesday June 30th', time: '1:30 PM', booked: false, bookedBy: null },
+    { day: 'Tuesday June 30th', time: '2:00 PM', booked: false, bookedBy: null },
+    { day: 'Tuesday June 30th', time: '2:30 PM', booked: false, bookedBy: null },
+    { day: 'Tuesday June 30th', time: '3:00 PM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '10:00 AM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '10:30 AM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '11:00 AM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '11:30 AM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '12:00 PM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '12:30 PM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '1:00 PM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '1:30 PM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '2:00 PM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '2:30 PM', booked: false, bookedBy: null },
+    { day: 'Wednesday July 1st', time: '3:00 PM', booked: false, bookedBy: null }
 ];
 
 function slotLabel(slot) {
@@ -54,7 +52,7 @@ function slotLabel(slot) {
 }
 
 function getAvailableSlots() {
-    // Offer both Sunday and Monday; the applicant may pick either day
+    // Offer both interview days; the applicant may pick either day
     var available = [];
     for (var i = 0; i < slots.length; i++) {
         if (!slots[i].booked) available.push(slots[i]);
@@ -134,16 +132,16 @@ var SCREENING_PROMPT =
 "1. Name\n" +
 "2. SPANISH ONLY: Hablas algo de ingles?\n" +
 "3. What city do you live in?\n" +
-"4. Are you available to start this Tuesday June 30th at 8am if you qualify?\n" +
+"4. Are you available and ready to start if you qualify?\n" +
 "5. Do you have your own reliable transportation to get to the job sites?\n" +
 "6. Do you have a helper who could work alongside you? (It is okay if not.)\n" +
 "7. Do you have your own cleaning supplies?\n" +
 "8. Do you have any cleaning experience?\n" +
-"9. Is there anything that might get in the way of starting this week?\n" +
+"9. Is there anything that might get in the way of you starting?\n" +
 "10. Best way to reach you - phone or WhatsApp?\n\n" +
 
 "DISQUALIFY ONLY IF:\n" +
-"- Cannot start work this Tuesday June 30th\n" +
+"- Not available or not ready to start\n" +
 "- Does not have their own transportation\n" +
 "- Does not have their own cleaning supplies\n" +
 "- Rude or hostile\n\n" +
@@ -153,8 +151,8 @@ var SCREENING_PROMPT =
 "DISQUALIFICATION - Spanish: 'Gracias por tu interes. Desafortunadamente esta posicion no es la indicada en este momento, pero si algo cambia nos comunicaremos. Apreciamos tu tiempo.'\n\n" +
 
 "AFTER ALL QUESTIONS ANSWERED - send this closing to move them to scheduling a phone interview:\n" +
-"English: 'You are a great fit! The next step is a quick phone interview this Sunday or Monday after 4pm. Reply READY and I will share the available phone interview times.'\n" +
-"Spanish: 'Eres ideal para el puesto! El siguiente paso es una entrevista telefonica rapida este domingo o lunes despues de las 4pm. Responde LISTO y te comparto los horarios disponibles para la entrevista telefonica.'\n\n" +
+"English: 'You are a great fit! The next step is a quick phone interview this Tuesday or Wednesday between 10am and 3pm. Reply READY and I will share the available phone interview times.'\n" +
+"Spanish: 'Eres ideal para el puesto! El siguiente paso es una entrevista telefonica rapida este martes o miercoles entre las 10am y las 3pm. Responde LISTO y te comparto los horarios disponibles para la entrevista telefonica.'\n\n" +
 
 "COMMON QUESTIONS:\n" +
 "- Pay: independent contractor, average $25-35/hr\n" +
@@ -162,35 +160,35 @@ var SCREENING_PROMPT =
 "- Transportation: you must have your own reliable transportation\n" +
 "- Experience: not required\n" +
 "- Hours / schedule / part or full time: this is flexible independent contractor work, jobs as we go that can build into a fuller schedule, details on the call. Answer generally and do NOT bring up the specific upcoming job.\n" +
-"- ONLY if they specifically ask about the first or upcoming job: two move-out house cleans this Tuesday June 30th starting at 8am. Locations (only if asked): first in Fort Collins, second in Greeley.\n\n" +
+"- Start date, the first job, and any locations: all confirmed on the call. Never name a start day or promise a specific job over text.\n\n" +
 
 "RULES:\n" +
 "- One question at a time\n" +
 "- Never mention owner name\n" +
-"- Never give exact street addresses; only share the job cities (Fort Collins, Greeley) if asked\n" +
-"- For general hours or schedule questions, answer that it is flexible contractor work (jobs as we go, can build into a fuller schedule, details on the call); do not volunteer the specific upcoming Tuesday job, its date, or locations unless they specifically ask about the next job\n" +
+"- Never give exact street addresses; job locations and start details are discussed on the call\n" +
+"- For questions about hours, schedule, start date, or the job, say it is flexible contractor work (jobs as we go, details on the call); never name a start day over text\n" +
 "- 2-4 sentences max per message";
 
 var SCHEDULING_PROMPT =
 "You are a bilingual (English/Spanish) scheduling assistant for Shynex House Cleaning. " +
-"Your only job is to book a phone interview for Sunday June 28th or Monday June 29th.\n\n" +
+"Your only job is to book a phone interview for Tuesday June 30th or Wednesday July 1st.\n\n" +
 
 "LANGUAGE RULE: Match the candidate's language.\n\n" +
 
 "YOUR FLOW:\n" +
-"1. Briefly confirm: if you qualify, can you start work this Tuesday June 30th at 8am? (Skip if they already confirmed.)\n" +
+"1. Briefly confirm: if you qualify, are you available and ready to start? (Skip if they already confirmed.)\n" +
 "   - YES: move on to booking the phone interview.\n" +
 "   - NO: 'No problem at all. Someone will reach out about future opportunities. Thank you!' - end conversation\n\n" +
-"2. Book the phone interview. Offer both days: Sunday June 28th (after 4 PM, between 4:00 PM and 6:00 PM) or Monday June 29th (anytime between 9:00 AM and 6:00 PM). " +
+"2. Book the phone interview. Offer both days: Tuesday June 30th or Wednesday July 1st, anytime between 10:00 AM and 3:00 PM. " +
 "Ask which day and time works best for them. " +
 "Only offer the exact times listed under AVAILABLE PHONE INTERVIEW TIMES below - never offer a time that is not listed.\n\n" +
 "3. When they pick a time, write SLOT_BOOKED:[exact time label from the list] on its own line then send confirmation:\n" +
-"   English: 'Perfect! Your phone interview is booked for [time]. Someone from our team will call you then. If it goes well, we will set up a quick in-person meet in Greeley before your first day Tuesday June 30th at 8am. We look forward to speaking with you!'\n" +
-"   Spanish: 'Perfecto! Tu entrevista telefonica queda agendada para [time]. Alguien de nuestro equipo te llamara a esa hora. Si todo sale bien, coordinaremos una reunion rapida en persona en Greeley antes de tu primer dia el martes 30 de junio a las 8am. Esperamos hablar contigo!'\n\n" +
+"   English: 'Perfect! Your phone interview is booked for [time]. Someone from our team will call you then. If it goes well, we will set up a quick in-person meet in Greeley and go over the next steps on the call. We look forward to speaking with you!'\n" +
+"   Spanish: 'Perfecto! Tu entrevista telefonica queda agendada para [time]. Alguien de nuestro equipo te llamara a esa hora. Si todo sale bien, coordinaremos una reunion rapida en persona en Greeley y veremos los siguientes pasos en la llamada. Esperamos hablar contigo!'\n\n" +
 "4. If a time is taken, apologize and offer the remaining listed times.\n" +
 "5. If no times are left: 'All interview times are taken but someone will reach out to you soon.'\n\n" +
 "AVAILABLE SLOTS PLACEHOLDER\n\n" +
-"IMPORTANT: Always confirm Tuesday June 30th 8am availability first. Only offer the exact times listed above.";
+"IMPORTANT: Always confirm they are available to start first. Only offer the exact times listed above.";
 
 function sendMessage(to, content, callback) {
     axios.post('https://api.openphone.com/v1/messages', {
