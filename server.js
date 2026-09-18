@@ -369,7 +369,8 @@ jobBlock + "\n" +
 "\"profile\": {\"name\": null, \"city\": null, \"experience\": null, \"car\": null, \"supplies\": null, \"helper\": null, \"available_job\": null, \"accepted_pay\": null, \"meetup_ok\": null, \"best_time\": null}, " +
 "\"status\": \"continue\" | \"call_ready\" | \"waitlist\" | \"not_interested\" | \"off_topic\"}\n" +
 "En profile llena solo lo que la persona ya dijo (texto corto o true/false), deja null lo demás. " +
-"status = call_ready SOLO cuando ya aceptó que Pedro le llame y ya dio la hora que prefiere (best_time)."
+"status = call_ready SOLO cuando ya aceptó que Pedro le llame y ya dio la hora que prefiere (best_time).\n\n" +
+"IMPORTANTE: tu respuesta completa SIEMPRE tiene que ser SOLO el objeto JSON, aunque sea una pregunta corta de confirmación. Nunca escribas texto fuera del JSON."
     );
 }
 
@@ -472,10 +473,17 @@ async function runScreening(state, text, now) {
     }
     var j = parseJson(out);
     if (!j) {
-        console.error('Bad JSON from Claude:', out.slice(0, 300));
-        state.history.pop();
-        await saveState(state);
-        return;
+        // The AI sometimes answers with plain text instead of JSON. Use the text as the reply instead of going silent.
+        var plain = String(out || '').trim();
+        console.error('Non-JSON reply from Claude, using as plain text:', plain.slice(0, 200));
+        if (plain && plain.indexOf('{') === -1) {
+            j = { reply: plain, profile: {}, status: 'continue' };
+        } else {
+            state.history.pop();
+            await saveState(state);
+            await sendAlert(state, 'BOT ERROR: respuesta rara de la IA, revisa la conversación', ['Phone: ' + state.phone, 'Msg: ' + text.slice(0, 120)]);
+            return;
+        }
     }
 
     // merge profile
