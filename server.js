@@ -280,7 +280,7 @@ var CLASSIFIER_PROMPT =
 "Classify the latest message(s) and return ONLY a JSON object:\n" +
 "{\"language\": \"es\" | \"en\" | \"mixed\" | \"unknown\", \"intent\": \"cleaning_job\" | \"greeting_only\" | \"yes_cleaning\" | \"sign_job\" | \"other_job\" | \"customer\" | \"existing_worker\" | \"spam\" | \"other\", \"reason\": \"short\"}\n\n" +
 "Definitions:\n" +
-"- cleaning_job: clearly asking about working cleaning houses / the cleaning job / 'trabajo de limpieza' / saw the ad and wants the job.\n" +
+"- cleaning_job: clearly asking about working cleaning houses / the cleaning job / 'trabajo de limpieza' / saw the ad and wants the job. The Facebook ad tells people to text 'trabajo limpieza', so ANY message containing 'trabajo limpieza' (any capitalization or spelling) is cleaning_job.\n" +
 "- greeting_only: only a greeting or vague opener with no topic (e.g. 'Hola', 'Buenas tardes', 'Hola, me interesa' with no topic, 'Información').\n" +
 "- yes_cleaning: an answer confirming they are writing about the cleaning job (e.g. 'Sí', 'Si, por el trabajo', 'Así es').\n" +
 "- sign_job: anything about placing/picking up signs, yard signs, letreros, rótulos.\n" +
@@ -344,7 +344,8 @@ jobBlock + "\n" +
 "- Si preguntan si eres un robot: sí, eres un sistema automático que hace las primeras preguntas, y después una persona le llama.\n\n" +
 
 "ORDEN DE LA CONVERSACIÓN (una pregunta por mensaje, salta lo que ya contestó):\n" +
-"1. Primero pregunta si está bien hacerle unas preguntas rápidas y después tener una entrevista corta por teléfono (5 a 10 minutos) con la persona que la va a entrevistar.\n" +
+"0. Lo primero de todo: pregunta si ha aplicado con Shynex antes (¿Has aplicado con nosotros antes?). Guarda la respuesta en applied_before. Si dice que sí, no importa, sigue normal.\n" +
+"1. Después pregunta si está bien hacerle unas preguntas rápidas y después tener una entrevista corta por teléfono (5 a 10 minutos) con la persona que la va a entrevistar.\n" +
 (active ? "1b. En cuanto diga que sí, ANTES de las demás preguntas, explícale en un mensaje corto de qué se trata: buscamos un equipo de 2 personas (ella y su ayudante) para una limpieza de mudanza el " + JOB.dateEs + " en Fort Collins, llegando a las 8 am, de unas 6 a 7 horas; y que primero le vas a hacer unas preguntas para ver si califica. En ese mismo mensaje pregunta su nombre.\n" : "") +
 "2. Nombre.\n" +
 "REGLA DE CLARIDAD: nunca digas \"ese día\", \"el trabajo\" o \"el lunes\" como si la persona ya supiera los detalles; siempre di la fecha completa (" + JOB.dateEs + ") la primera vez que la mencionas en una pregunta. Si la persona se confunde o pregunta si ya está contratada, explícale que todavía no, que son preguntas previas y que la decisión es después de la entrevista.\n" +
@@ -371,7 +372,7 @@ jobBlock + "\n" +
 
 "FORMATO DE RESPUESTA: devuelve SOLO un objeto JSON, sin texto antes o después:\n" +
 "{\"reply\": \"mensaje en español (o \\\"\\\" si no hay que contestar)\", " +
-"\"profile\": {\"name\": null, \"city\": null, \"experience\": null, \"car\": null, \"supplies\": null, \"helper\": null, \"available_job\": null, \"accepted_pay\": null, \"meetup_ok\": null, \"interview_ok\": null, \"best_time\": null}, " +
+"\"profile\": {\"name\": null, \"city\": null, \"experience\": null, \"car\": null, \"supplies\": null, \"helper\": null, \"available_job\": null, \"accepted_pay\": null, \"meetup_ok\": null, \"interview_ok\": null, \"applied_before\": null, \"best_time\": null}, " +
 "\"unknown_question\": null, " +
 "\"status\": \"continue\" | \"call_ready\" | \"waitlist\" | \"not_interested\" | \"off_topic\"}\n" +
 "En profile llena solo lo que la persona ya dijo (texto corto o true/false), deja null lo demás. " +
@@ -468,7 +469,7 @@ async function runScreening(state, text, now) {
     var out;
     try {
         var sys = buildScreeningPrompt(state, now) + (state.disclosed ? '' :
-            '\n\nESTE ES TU PRIMER MENSAJE A ESTA PERSONA: empieza diciendo con naturalidad que eres el sistema automático de reclutamiento de Shynex House Cleaning y que le vas a hacer unas preguntas rápidas.');
+            '\n\nESTE ES TU PRIMER MENSAJE A ESTA PERSONA: empieza diciendo con naturalidad que eres el sistema automático de reclutamiento de Shynex House Cleaning, y pregunta si ha aplicado con nosotros antes. Nada más en este primer mensaje.');
         out = await callClaude(sys, msgs, 700);
     } catch (e) {
         console.error('Claude error:', e.response ? JSON.stringify(e.response.data) : e.message);
@@ -541,6 +542,7 @@ async function runScreening(state, text, now) {
         await sendAlert(state, (win.urgent ? '🚨 URGENTE - ' : '') + 'CANDIDATA LISTA PARA LLAMADA', [
             'Name: ' + (prof.name || '?') + ' | City: ' + (prof.city || '?'),
             'Phone: ' + state.phone,
+            'Applied before: ' + fmtBool(prof.applied_before),
             'Call: ' + win.label + ' | Best time: ' + (prof.best_time || '?'),
             'Monday: ' + fmtBool(prof.available_job) + ' | OK $25/hr: ' + fmtBool(prof.accepted_pay) + ' | 6:30 meet OK: ' + fmtBool(prof.meetup_ok),
             'Car: ' + fmtBool(prof.car) + ' | Supplies: ' + fmtBool(prof.supplies) + ' | Helper: ' + fmtBool(prof.helper),
