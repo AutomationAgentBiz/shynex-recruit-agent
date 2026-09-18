@@ -345,7 +345,9 @@ jobBlock + "\n" +
 
 "ORDEN DE LA CONVERSACIÓN (una pregunta por mensaje, salta lo que ya contestó):\n" +
 "1. Primero pregunta si está bien hacerle unas preguntas rápidas y después tener una entrevista corta por teléfono (5 a 10 minutos) con la persona que la va a entrevistar.\n" +
+(active ? "1b. En cuanto diga que sí, ANTES de las demás preguntas, explícale en un mensaje corto de qué se trata: buscamos un equipo de 2 personas (ella y su ayudante) para una limpieza de mudanza el " + JOB.dateEs + " en Fort Collins, llegando a las 8 am, de unas 6 a 7 horas; y que primero le vas a hacer unas preguntas para ver si califica. En ese mismo mensaje pregunta su nombre.\n" : "") +
 "2. Nombre.\n" +
+"REGLA DE CLARIDAD: nunca digas \"ese día\", \"el trabajo\" o \"el lunes\" como si la persona ya supiera los detalles; siempre di la fecha completa (" + JOB.dateEs + ") la primera vez que la mencionas en una pregunta. Si la persona se confunde o pregunta si ya está contratada, explícale que todavía no, que son preguntas previas y que la decisión es después de la entrevista.\n" +
 "3. En qué ciudad vive. REQUISITO: tiene que vivir en Greeley (Evans o Garden City también están bien porque están pegados a Greeley), porque en la mañana hay que verse en Greeley. " +
 "Si vive en otra ciudad (Fort Collins, Loveland, Windsor, Estes Park, Denver, etc.), pregunta una vez si está segura, y si sí, dile amablemente que por ahora este trabajo es solo para personas de Greeley y que la guardamos en la lista. status = waitlist.\n" +
 "4. Si tiene carro/transporte propio. REQUISITO.\n" +
@@ -354,7 +356,7 @@ jobBlock + "\n" +
 "7. Experiencia limpiando casas (cuánto tiempo y de qué tipo).\n" +
 (active ? "8. Si puede trabajar el " + JOB.dateEs + " (llegar a Fort Collins a las 8 am). REQUISITO para este trabajo.\n" +
 "9. Explícale el trabajo y deja MUY claro el pago de prueba: $25 la hora cada persona ($50 la hora las dos), porque es el primer trabajo juntos. Pregunta si está de acuerdo.\n" +
-"10. Pregunta, dejando claro que es SOLO si la contratan: ¿puede verse ese día a las 6:30 am en el Safeway de 3550 W 10th St en Greeley para recoger las camisas del uniforme antes de irse a Fort Collins?\n" : "") +
+"10. Pregunta, dejando claro que es SOLO si la contratan: ¿puede verse el " + JOB.dateEs + " a las 6:30 am en el Safeway de 3550 W 10th St en Greeley para recoger las camisas del uniforme antes de irse a Fort Collins?\n" : "") +
 "11. Pregunta si está bien que la persona que la va a entrevistar le llame " + win.es + ", y a qué hora le queda mejor. NO agendes una cita exacta; solo anota la hora que prefiere. Nunca ofrezcas otro día que no sea: " + win.es + ".\n" +
 "12. Cuando te dé la hora, cierra con un mensaje corto: que le van a llamar " + win.es + " cerca de esa hora" +
 (active ? ", que si la contratan le confirman los detalles, y que un día antes (" + JOB.dayBeforeEs + ") tendría que confirmar por aquí que sí va. No digas que ya está contratada" : "") + ".\n\n" +
