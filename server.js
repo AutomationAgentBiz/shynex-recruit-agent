@@ -368,7 +368,7 @@ jobBlock + "\n" +
 "(5) Acabas de trapear el piso y tienes el agua sucia en la cubeta. ¿Dónde tiras esa agua sucia? " +
 "(6) ¿Tienes trapos separados para el baño y para la cocina? " +
 "Usa palabras sencillas, como en estos ejemplos. " +
-"En las preguntas de productos (1, 2 y 3), agrega al final algo como: 'Si no sabes el nombre del producto, no te preocupes, solo descríbemelo (el color, cómo es, para qué lo usas).' Una buena descripción cuenta igual que el nombre correcto al calificar (ej: 'una esponja suave, no la de metal' es correcto para el horno). No le pidas fotos. " +
+"En las preguntas de productos (1, 2 y 3), agrega al final algo como: 'Si no sabes el nombre del producto, no te preocupes, solo descríbemelo (el color, cómo es, para qué lo usas).' Una buena descripción cuenta igual que el nombre correcto al calificar (ej: 'una esponja suave, no la de metal' es correcto para el horno). No le pidas fotos. Si la persona manda una foto, vas a ver un texto como '[La persona mandó 1 foto. Lo que se ve: ...]': tómalo como su respuesta a la pregunta actual (califícalo igual que si lo escribiera), dale las gracias por la foto en pocas palabras y sigue con la siguiente pregunta. Si la foto no se pudo ver o no contesta la pregunta, pídele amablemente que te lo explique con palabras. Nunca digas que no puedes ver fotos. " +
 "NO le digas si está bien o mal, NO le des las respuestas ni pistas; solo di algo corto como 'Ok, gracias' y pasa a la siguiente. " +
 "Para calificar (esto es solo para ti, nunca lo digas): (1) quita-sarro (CLR, Bar Keepers Friend, vinagre), fibra que no raye, enjuagar y SECAR al final; (2) limpiador de hornos o desengrasante, dejarlo actuar, y tallar con esponja o fibra que NO raye (mal: fibra de acero/brillo); (3) limpiador para acero inoxidable o trapo de microfibra, siguiendo la dirección de las líneas del metal; (4) de arriba hacia abajo: ventiladores/lámparas y lo de arriba primero, el piso al final; (5) en la taza del baño, nunca afuera ni en el jardín; (6) sí, trapos separados. VOCABULARIO: nunca uses la palabra 'inodoro'; di 'taza del baño'. " +
 "Guarda en skill_notes un resumen muy corto de cada respuesta (ej: '1 no dijo secar, 2 ✓, 3 ✓...') y en skill_rating: strong, medium o weak. skill_notes va EN INGLÉS (ej: '1 didn't say dry it, 2 ✓, 3 ✓...').\n" +
@@ -691,8 +691,14 @@ app.post('/webhook', function(req, res) {
 
     var from = obj.from;
     var text = obj.body || obj.text || obj.content;
-    if (!from || !text) return;
+    var media = (Array.isArray(obj.media) ? obj.media : []).filter(function(m) { return m && m.url; });
+    if (!from || (!text && !media.length)) return;
     if (!isForPrimary(obj)) { console.log('Ignored: not the Primary line'); return; }
+    if (media.length) {
+        // Photos: wait a few seconds so several photos sent together get ONE reply, then describe them for the AI.
+        queuePhotos(from, media, text, obj.id);
+        return;
+    }
 
     // Pete's cell: admin commands; anything else from his cell is treated as a TEST applicant (he tests from his phone)
     if (normalizePhone(from) === normalizePhone(ALERT_NUMBER) && isAdminCommand(text)) {
@@ -708,6 +714,48 @@ app.post('/webhook', function(req, res) {
         await handleIncoming(from, text, obj.id);
     });
 });
+
+// ───────────────────────── PHOTOS ─────────────────────────
+var photoQueue = {};
+function queuePhotos(from, media, text, msgId) {
+    var key = normalizePhone(from);
+    var q = photoQueue[key] || (photoQueue[key] = { media: [], texts: [], id: msgId });
+    q.media = q.media.concat(media);
+    if (text) q.texts.push(text);
+    if (q.timer) clearTimeout(q.timer);
+    q.timer = setTimeout(function() {
+        delete photoQueue[key];
+        withLock(from, async function() {
+            if (!(await isBotEnabled())) return;
+            if (await isBlocked(from)) return;
+            if (inList(OWN_NUMBERS, from) && !inList(TEST_NUMBERS, from)) return;
+            var desc = await describePhotos(q.media);
+            var combined = (q.texts.length ? q.texts.join(' ') + ' ' : '') +
+                '[La persona mandó ' + q.media.length + (q.media.length > 1 ? ' fotos' : ' foto') + '. Lo que se ve: ' + desc + ']';
+            await handleIncoming(from, combined, q.id);
+        });
+    }, 8000);
+}
+
+async function describePhotos(media) {
+    try {
+        var content = [];
+        for (var i = 0; i < media.length && i < 4; i++) {
+            var type = String(media[i].type || 'image/jpeg');
+            if (type.indexOf('image/') !== 0) continue;
+            var r = await axios.get(media[i].url, { responseType: 'arraybuffer', timeout: 20000 });
+            var mt = /image\/(png|gif|webp)/.test(type) ? type : 'image/jpeg';
+            content.push({ type: 'image', source: { type: 'base64', media_type: mt, data: Buffer.from(r.data).toString('base64') } });
+        }
+        if (!content.length) return 'un archivo que no es foto (no se pudo ver)';
+        content.push({ type: 'text', text: 'Un solicitante de trabajo de limpieza mandó esto por mensaje. Describe en español, en 1 o 2 frases cortas, lo que se ve. Si hay productos de limpieza, di el nombre/marca y para qué sirven según la etiqueta (ej: limpiador de estufa de vidrio, desengrasante de horno). Solo la descripción.' });
+        var out = await callClaude('Describes fotos de forma breve y exacta.', [{ role: 'user', content: content }], 200);
+        return String(out || '').trim() || 'no se pudo ver bien la foto';
+    } catch (e) {
+        console.error('Photo describe error:', e.message);
+        return 'no se pudo abrir la foto';
+    }
+}
 
 function isForPrimaryOutgoing(obj) {
     if (obj.direction && obj.direction !== 'outgoing') return false;
