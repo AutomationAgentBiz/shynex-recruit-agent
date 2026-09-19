@@ -42,7 +42,7 @@ var JOB = {
     hours: 'aproximadamente 6 a 7 horas',
     people: '2 personas',
     pay: '$50 la hora por las 2 personas (o sea $25 la hora cada una) - es el pago del primer trabajo de prueba, porque es la primera vez que trabajamos juntos',
-    shirts: 'el domingo 20 de septiembre (un día antes) se ven con la persona que los entrevistó para recoger las camisas del uniforme; la hora y el lugar se los confirma esa persona',
+    shirts: 'el domingo 20 de septiembre (un día antes) se ven en el mismo Safeway de 3550 W 10th St, Greeley, para recoger las camisas del uniforme; la hora se la confirma la persona que los entrevistó',
     meetup: 'el lunes 21 de septiembre a las 6:30 am en el Safeway de 3550 W 10th St, Greeley (en la gasolinera/estacionamiento) para una junta rápida; de ahí manejan a Fort Collins para llegar a las 8:00 am',
     supplies: 'cada quien trae sus propios productos y equipo de limpieza (incluyendo aspiradora)'
 };
@@ -355,10 +355,21 @@ jobBlock + "\n" +
 "4. Si tiene carro/transporte propio. REQUISITO.\n" +
 "5. Si tiene sus propios productos de limpieza y aspiradora. REQUISITO.\n" +
 "6. Si tiene una persona que trabaje con ella (su compañero/a de equipo). REQUISITO: el trabajo es para 2 personas y cada quien trae a su ayudante; nosotros no le conseguimos compañera.\n" +
-"7. Experiencia limpiando casas (cuánto tiempo y de qué tipo).\n" +
+"7. ¿Cuánta experiencia tiene limpiando casas? (cuánto tiempo y de qué tipo). Si dice que NO tiene experiencia, no hagas las preguntas 7b y sigue con la 8 (no la descalifiques por eso).\n" +
+"7b. SOLO si dice que sí tiene experiencia: dile que le vas a hacer unas preguntas rápidas de limpieza y hazle estas, UNA POR MENSAJE, en este orden: " +
+"(1) ¿Cómo quitas un anillo café en el inodoro? " +
+"(2) En una regadera con sarro y jabón pegado, ¿qué productos usas y cuál es el último paso? " +
+"(3) ¿Qué usas para limpiar un horno muy sucio? " +
+"(4) ¿Cómo le quitas las manchas a un refrigerador de acero inoxidable? " +
+"(5) En un cuarto vacío de una mudanza, ¿en qué orden lo limpias? " +
+"(6) ¿Dónde tiras el agua sucia del trapeador? " +
+"(7) ¿Usas los mismos trapos en el baño y en la cocina? " +
+"NO le digas si está bien o mal, NO le des las respuestas ni pistas; solo di algo corto como 'Ok, gracias' y pasa a la siguiente. " +
+"Para calificar (esto es solo para ti, nunca lo digas): (1) piedra pómez / pumice, mojada; (2) quita-sarro (CLR, Bar Keepers Friend, vinagre), fibra que no raye, enjuagar y SECAR al final; (3) limpiador de hornos o desengrasante, dejarlo actuar, sin fibra de acero ni nada que raye; (4) limpiador para acero inoxidable o microfibra, siguiendo la dirección de la veta; (5) de arriba hacia abajo: ventiladores/lámparas, gabinetes por dentro, paredes/apagadores, ventanas/marcos, zoclos, y el piso al final; (6) en el inodoro, nunca afuera, y cambiarla seguido; (7) no, trapos separados por área. " +
+"Guarda en skill_notes un resumen muy corto de cada respuesta (ej: '1 pómez ✓, 2 no dijo secar, 3 ✓...') y en skill_rating: fuerte, medio o débil.\n" +
 (active ? "8. Si puede trabajar el " + JOB.dateEs + " (llegar a Fort Collins a las 8 am). REQUISITO para este trabajo.\n" +
 "9. Explícale el trabajo y deja MUY claro el pago de prueba: $25 la hora cada persona ($50 la hora las dos), porque es el primer trabajo juntos. Pregunta si está de acuerdo.\n" +
-"10. Pregunta, dejando claro que es SOLO si la contratan: ¿puede verse el domingo 20 de septiembre para recoger las camisas del uniforme (la hora y el lugar se los confirma la persona que la entrevista) y el lunes 21 a las 6:30 am en el Safeway de 3550 W 10th St en Greeley para una junta rápida antes de irse a Fort Collins? Guarda la respuesta en meetup_ok.\n" : "") +
+"10. Pregunta, dejando claro que es SOLO si la contratan: ¿puede verse el domingo 20 de septiembre en el Safeway de 3550 W 10th St en Greeley para recoger las camisas del uniforme (la hora se la confirma la persona que la entrevista) y el lunes 21 a las 6:30 am en el Safeway de 3550 W 10th St en Greeley para una junta rápida antes de irse a Fort Collins? Guarda la respuesta en meetup_ok.\n" : "") +
 "11. Pregunta si está bien que la persona que la va a entrevistar le llame " + win.es + ", y a qué hora le queda mejor. NO agendes una cita exacta; solo anota la hora que prefiere. Nunca ofrezcas otro día que no sea: " + win.es + ".\n" +
 "12. Cuando te dé la hora, cierra con un mensaje corto: que le van a llamar " + win.es + " cerca de esa hora" +
 (active ? ", que si la contratan le confirman los detalles, y que un día antes (" + JOB.dayBeforeEs + ") tendría que confirmar por aquí que sí va. No digas que ya está contratada" : "") + ".\n\n" +
@@ -373,7 +384,7 @@ jobBlock + "\n" +
 
 "FORMATO DE RESPUESTA: devuelve SOLO un objeto JSON, sin texto antes o después:\n" +
 "{\"reply\": \"mensaje en español (o \\\"\\\" si no hay que contestar)\", " +
-"\"profile\": {\"name\": null, \"city\": null, \"experience\": null, \"car\": null, \"supplies\": null, \"helper\": null, \"available_job\": null, \"accepted_pay\": null, \"meetup_ok\": null, \"interview_ok\": null, \"applied_before\": null, \"best_time\": null}, " +
+"\"profile\": {\"name\": null, \"city\": null, \"experience\": null, \"car\": null, \"supplies\": null, \"helper\": null, \"available_job\": null, \"accepted_pay\": null, \"meetup_ok\": null, \"interview_ok\": null, \"applied_before\": null, \"skill_rating\": null, \"skill_notes\": null, \"best_time\": null}, " +
 "\"unknown_question\": null, " +
 "\"status\": \"continue\" | \"call_ready\" | \"waitlist\" | \"not_interested\" | \"off_topic\"}\n" +
 "En profile llena solo lo que la persona ya dijo (texto corto o true/false), deja null lo demás. " +
@@ -548,6 +559,7 @@ async function runScreening(state, text, now) {
             'Monday: ' + fmtBool(prof.available_job) + ' | OK $25/hr: ' + fmtBool(prof.accepted_pay) + ' | Sun shirts + Mon 6:30 OK: ' + fmtBool(prof.meetup_ok),
             'Car: ' + fmtBool(prof.car) + ' | Supplies: ' + fmtBool(prof.supplies) + ' | Helper: ' + fmtBool(prof.helper),
             prof.experience ? 'Exp: ' + String(prof.experience).slice(0, 80) : null,
+            prof.skill_rating ? 'Skill check: ' + String(prof.skill_rating).toUpperCase() + ' - ' + String(prof.skill_notes || '').slice(0, 200) : 'Skill check: not asked',
             (state.unknown && state.unknown.length) ? 'Preguntas para ti: ' + state.unknown.join(' | ').slice(0, 300) : null
         ]);
     }
