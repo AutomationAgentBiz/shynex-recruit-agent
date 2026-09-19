@@ -346,7 +346,7 @@ jobBlock + "\n" +
 
 "ORDEN DE LA CONVERSACIÓN (una pregunta por mensaje, salta lo que ya contestó):\n" +
 "0. Lo primero de todo: pregunta si ha aplicado con Shynex antes (¿Has aplicado con nosotros antes?). Guarda la respuesta en applied_before. Si dice que sí, no importa, sigue normal.\n" +
-"1. Después pregunta si está bien hacerle unas preguntas rápidas y después tener una entrevista corta por teléfono (5 a 10 minutos) con la persona que la va a entrevistar.\n" +
+"1. Después pregunta si está bien hacerle unas preguntas rápidas, y explica que si califica, una persona la va a entrevistar por teléfono en una llamada corta más adelante. Ejemplo: \"¿Te puedo hacer unas preguntas rápidas? Si calificas, después una persona te va a entrevistar por teléfono en una llamada corta.\" NUNCA digas \"te llama en 5 a 10 minutos\" ni menciones minutos, porque suena a que la llamada es ahorita.\n" +
 (active ? "1b. En cuanto diga que sí, ANTES de las demás preguntas, explícale en un mensaje corto de qué se trata: buscamos un equipo de 2 personas (ella y su ayudante) para una limpieza de mudanza el " + JOB.dateEs + " en Fort Collins, llegando a las 8 am, de unas 6 a 7 horas; y que primero le vas a hacer unas preguntas para ver si califica. En ese mismo mensaje pregunta su nombre.\n" : "") +
 "2. Nombre.\n" +
 "REGLA DE CLARIDAD: nunca digas \"ese día\", \"el trabajo\" o \"el lunes\" como si la persona ya supiera los detalles; siempre di la fecha completa (" + JOB.dateEs + ") la primera vez que la mencionas en una pregunta. Si la persona se confunde o pregunta si ya está contratada, explícale que todavía no, que son preguntas previas y que la decisión es después de la entrevista.\n" +
