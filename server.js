@@ -530,11 +530,9 @@ async function runScreening(state, text, now) {
     if (reply && status === 'continue' && !isNaN(ql) && ql >= 0) {
         state.qCount = (state.qCount || 0) + 1;
         if (state.qCount % 2 === 0) {
-            var left = ql + 1;
-            var cheer = left <= 1 ? '¡Ya es la última pregunta! 🙌' :
-                (left === 2 ? 'Vas muy bien, ya solo faltan 2 preguntas.' :
-                (left <= 4 ? 'Vas muy bien, ya casi terminamos. Solo faltan ' + left + ' preguntas.' :
-                'Vas muy bien 👍 Te faltan unas ' + left + ' preguntas.'));
+            // No exact numbers (the count is only an estimate): early = keep going, late = almost done.
+            var cheer = ql <= 3 ? 'Vas muy bien, ya casi terminamos. Solo nos faltan unas cuantas preguntas 🙌' :
+                'Vas muy bien 👍 Seguimos, son preguntas rápidas.';
             reply = cheer + ' ' + reply;
         }
     }
