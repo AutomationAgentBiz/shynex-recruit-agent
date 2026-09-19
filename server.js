@@ -346,7 +346,7 @@ jobBlock + "\n" +
 
 "MOTIVACIÓN Y AYUDA (muy importante, para que no se desanime con tantas preguntas):\n" +
 "- Cuando empieces las preguntas para ver si califica, dile una vez algo como: 'Si no entiendes alguna pregunta, dime y te la explico con gusto.'\n" +
-"- Cada 2 o 3 preguntas, agrega al principio del mensaje una frase corta para animarla, diciendo cuántas preguntas faltan más o menos, por ejemplo: 'Vas muy bien, ya casi terminamos, solo me faltan unas 4 preguntas.' o 'Ya nada más 2 preguntas y terminamos.' Cuenta las preguntas que realmente faltan según este orden (incluye las preguntas de limpieza solo si tiene experiencia). No lo pongas en cada mensaje, solo de vez en cuando.\n" +
+"- NO escribas tú frases de cuántas preguntas faltan; el sistema las agrega solo. Tú solo llena el campo questions_left.\n" +
 "- Si dice que no entiende una pregunta, explícasela con palabras más sencillas o con un ejemplo, pero sin darle la respuesta.\n\n" +
 "ORDEN DE LA CONVERSACIÓN (una pregunta por mensaje, salta lo que ya contestó):\n" +
 "0. Lo primero de todo: pregunta si ha aplicado con Shynex antes (¿Has aplicado con nosotros antes?). Guarda la respuesta en applied_before. Si dice que sí, no importa, sigue normal.\n" +
@@ -390,8 +390,9 @@ jobBlock + "\n" +
 "FORMATO DE RESPUESTA: devuelve SOLO un objeto JSON, sin texto antes o después:\n" +
 "{\"reply\": \"mensaje en español (o \\\"\\\" si no hay que contestar)\", " +
 "\"profile\": {\"name\": null, \"city\": null, \"experience\": null, \"car\": null, \"supplies\": null, \"helper\": null, \"available_job\": null, \"accepted_pay\": null, \"meetup_ok\": null, \"interview_ok\": null, \"applied_before\": null, \"skill_rating\": null, \"skill_notes\": null, \"best_time\": null}, " +
-"\"unknown_question\": null, " +
+"\"unknown_question\": null, \"questions_left\": null, " +
 "\"status\": \"continue\" | \"call_ready\" | \"waitlist\" | \"not_interested\" | \"off_topic\"}\n" +
+"questions_left = cuántas preguntas de la lista (pasos 2 al 11, incluyendo las de limpieza solo si tiene experiencia) quedan DESPUÉS de la pregunta que haces en este mensaje (número entero; 0 si esta es la última; null si este mensaje no hace una de esas preguntas). " +
 "En profile llena solo lo que la persona ya dijo (texto corto o true/false), deja null lo demás. IMPORTANTE: todo lo que escribas en profile y en unknown_question va EN INGLÉS (es para el dueño, que lee en inglés); solo el reply va en español. " +
 "status = call_ready SOLO cuando ya cumplió los requisitos, aceptó la llamada y dio la hora que prefiere (best_time).\n\n" +
 "IMPORTANTE: tu respuesta completa SIEMPRE tiene que ser SOLO el objeto JSON. Nunca escribas texto fuera del JSON."
@@ -521,6 +522,19 @@ async function runScreening(state, text, now) {
 
     var reply = String(j.reply || '').replace(/\*\*/g, '').trim();
     var status = j.status || 'continue';
+
+    // Progress encouragement, added by code every other question so it always shows up
+    var ql = parseInt(j.questions_left, 10);
+    if (reply && status === 'continue' && !isNaN(ql) && ql >= 0) {
+        state.qCount = (state.qCount || 0) + 1;
+        if (state.qCount % 2 === 0) {
+            var left = ql + 1;
+            var cheer = left <= 1 ? '¡Ya es la última pregunta! 🙌' :
+                (left === 2 ? 'Vas muy bien, ya solo faltan 2 preguntas.' :
+                'Vas muy bien, ya casi terminamos. Solo faltan ' + left + ' preguntas.');
+            reply = cheer + ' ' + reply;
+        }
+    }
 
     if (status === 'off_topic') {
         state.history.pop();
