@@ -331,7 +331,7 @@ function buildScreeningPrompt(state, now) {
 "REGLA MÁS IMPORTANTE - NO ADIVINES: solo puedes dar la información que está escrita abajo. Si te preguntan algo que no está escrito aquí " +
 "(por ejemplo si se paga en efectivo o de otra forma, detalles de las camisas, dinero para gasolina, adelantos, contrato, seguro, impuestos, papeles, horarios de otros trabajos, cuántas casas, o cualquier otra cosa), " +
 "NO lo inventes y NO digas que sí ni que no. Contesta algo como: \"Buena pregunta, esa te la contesta la persona que te va a entrevistar en la llamada\" y sigue con la siguiente pregunta. " +
-"Cada vez que pase esto, escribe la pregunta de la persona en el campo unknown_question.\n\n" +
+"Cada vez que pase esto, escribe la pregunta de la persona en el campo unknown_question, TRADUCIDA AL INGLÉS.\n\n" +
 
 "FECHA Y HORA AHORA: " + nowDescriptionEs(now) + ".\n\n" +
 
@@ -366,7 +366,7 @@ jobBlock + "\n" +
 "Usa palabras sencillas, como en estos ejemplos. " +
 "NO le digas si está bien o mal, NO le des las respuestas ni pistas; solo di algo corto como 'Ok, gracias' y pasa a la siguiente. " +
 "Para calificar (esto es solo para ti, nunca lo digas): (1) quita-sarro (CLR, Bar Keepers Friend, vinagre), fibra que no raye, enjuagar y SECAR al final; (2) limpiador de hornos o desengrasante, dejarlo actuar, y tallar con esponja o fibra que NO raye (mal: fibra de acero/brillo); (3) limpiador para acero inoxidable o trapo de microfibra, siguiendo la dirección de las líneas del metal; (4) de arriba hacia abajo: ventiladores/lámparas y lo de arriba primero, el piso al final; (5) en la taza del baño, nunca afuera ni en el jardín; (6) sí, trapos separados. VOCABULARIO: nunca uses la palabra 'inodoro'; di 'taza del baño'. " +
-"Guarda en skill_notes un resumen muy corto de cada respuesta (ej: '1 no dijo secar, 2 ✓, 3 ✓...') y en skill_rating: fuerte, medio o débil.\n" +
+"Guarda en skill_notes un resumen muy corto de cada respuesta (ej: '1 no dijo secar, 2 ✓, 3 ✓...') y en skill_rating: strong, medium o weak. skill_notes va EN INGLÉS (ej: '1 didn't say dry it, 2 ✓, 3 ✓...').\n" +
 (active ? "8. Si puede trabajar el " + JOB.dateEs + " (llegar a Fort Collins a las 8 am). REQUISITO para este trabajo.\n" +
 "9. Explícale el trabajo y deja MUY claro el pago de prueba: $25 la hora cada persona ($50 la hora las dos), porque es el primer trabajo juntos. Pregunta si está de acuerdo.\n" +
 "10. Pregunta, dejando claro que es SOLO si la contratan: ¿puede verse el domingo 20 de septiembre en el Safeway de 3550 W 10th St en Greeley para recoger las camisas del uniforme (la hora se la confirma la persona que la entrevista) y el lunes 21 a las 6:30 am en el Safeway de 3550 W 10th St en Greeley para una junta rápida antes de irse a Fort Collins? Guarda la respuesta en meetup_ok.\n" : "") +
@@ -387,7 +387,7 @@ jobBlock + "\n" +
 "\"profile\": {\"name\": null, \"city\": null, \"experience\": null, \"car\": null, \"supplies\": null, \"helper\": null, \"available_job\": null, \"accepted_pay\": null, \"meetup_ok\": null, \"interview_ok\": null, \"applied_before\": null, \"skill_rating\": null, \"skill_notes\": null, \"best_time\": null}, " +
 "\"unknown_question\": null, " +
 "\"status\": \"continue\" | \"call_ready\" | \"waitlist\" | \"not_interested\" | \"off_topic\"}\n" +
-"En profile llena solo lo que la persona ya dijo (texto corto o true/false), deja null lo demás. " +
+"En profile llena solo lo que la persona ya dijo (texto corto o true/false), deja null lo demás. IMPORTANTE: todo lo que escribas en profile y en unknown_question va EN INGLÉS (es para el dueño, que lee en inglés); solo el reply va en español. " +
 "status = call_ready SOLO cuando ya cumplió los requisitos, aceptó la llamada y dio la hora que prefiere (best_time).\n\n" +
 "IMPORTANTE: tu respuesta completa SIEMPRE tiene que ser SOLO el objeto JSON. Nunca escribas texto fuera del JSON."
     );
@@ -429,7 +429,7 @@ async function handleIncoming(from, text, msgId) {
         state.history.push({ role: 'assistant', content: ok });
         await saveState(state);
         await sendSms(from, ok);
-        await sendAlert(state, 'CONFIRMÓ ✅', ['Name: ' + (state.profile.name || '?'), 'Phone: ' + from]);
+        await sendAlert(state, 'CONFIRMED ✅', ['Name: ' + (state.profile.name || '?'), 'Phone: ' + from]);
         return;
     }
 
@@ -460,11 +460,11 @@ async function handleIncoming(from, text, msgId) {
             await saveState(state);
             if (wasNew && c.intent === 'customer' && !state.alerts.customer) {
                 state.alerts.customer = true; await saveState(state);
-                await sendAlert(state, 'FYI: posible CLIENTE escribió al Primary (bot no contestó)', ['Phone: ' + from, 'Msg: ' + trimmed.slice(0, 160)]);
+                await sendAlert(state, 'FYI: possible CUSTOMER texted Primary (bot did not reply)', ['Phone: ' + from, 'Msg: ' + trimmed.slice(0, 160)]);
             }
             if (wasNew && c.language === 'en' && c.intent === 'cleaning_job' && !state.alerts.english) {
                 state.alerts.english = true; await saveState(state);
-                await sendAlert(state, 'FYI: aplicante en INGLÉS (bot no contestó)', ['Phone: ' + from, 'Msg: ' + trimmed.slice(0, 160)]);
+                await sendAlert(state, 'FYI: applicant wrote in ENGLISH (bot did not reply)', ['Phone: ' + from, 'Msg: ' + trimmed.slice(0, 160)]);
             }
             return;
         }
@@ -489,7 +489,7 @@ async function runScreening(state, text, now) {
         await saveState(state);
         if (!state.alerts.aiError) {
             state.alerts.aiError = true; await saveState(state);
-            await sendAlert(state, 'BOT ERROR: la IA no respondió', ['Phone: ' + state.phone, 'Msg: ' + text.slice(0, 120)]);
+            await sendAlert(state, 'BOT ERROR: the AI did not respond', ['Phone: ' + state.phone, 'Msg: ' + text.slice(0, 120)]);
         }
         return;
     }
@@ -503,7 +503,7 @@ async function runScreening(state, text, now) {
         } else {
             state.history.pop();
             await saveState(state);
-            await sendAlert(state, 'BOT ERROR: respuesta rara de la IA, revisa la conversación', ['Phone: ' + state.phone, 'Msg: ' + text.slice(0, 120)]);
+            await sendAlert(state, 'BOT ERROR: odd AI reply, check the conversation', ['Phone: ' + state.phone, 'Msg: ' + text.slice(0, 120)]);
             return;
         }
     }
@@ -551,7 +551,7 @@ async function runScreening(state, text, now) {
     if (status === 'call_ready' && !state.alerts.callReady) {
         state.alerts.callReady = true;
         await saveState(state);
-        await sendAlert(state, (win.urgent ? '🚨 URGENTE - ' : '') + 'CANDIDATA LISTA PARA LLAMADA', [
+        await sendAlert(state, (win.urgent ? '🚨 URGENT - ' : '') + 'CANDIDATE READY FOR A CALL', [
             'Name: ' + (prof.name || '?') + ' | City: ' + (prof.city || '?'),
             'Phone: ' + state.phone,
             'Applied before: ' + fmtBool(prof.applied_before),
@@ -560,13 +560,13 @@ async function runScreening(state, text, now) {
             'Car: ' + fmtBool(prof.car) + ' | Supplies: ' + fmtBool(prof.supplies) + ' | Helper: ' + fmtBool(prof.helper),
             prof.experience ? 'Exp: ' + String(prof.experience).slice(0, 80) : null,
             prof.skill_rating ? 'Skill check: ' + String(prof.skill_rating).toUpperCase() + ' - ' + String(prof.skill_notes || '').slice(0, 200) : 'Skill check: not asked',
-            (state.unknown && state.unknown.length) ? 'Preguntas para ti: ' + state.unknown.join(' | ').slice(0, 300) : null
+            (state.unknown && state.unknown.length) ? 'Questions for you: ' + state.unknown.join(' | ').slice(0, 300) : null
         ]);
     }
     if (status === 'waitlist' && prevStage !== 'waitlist' && !state.alerts.waitlist) {
         state.alerts.waitlist = true;
         await saveState(state);
-        await sendAlert(state, 'Waitlist (no calificó para este trabajo)', [
+        await sendAlert(state, 'Waitlist (did not qualify for this job)', [
             'Name: ' + (prof.name || '?') + ' | City: ' + (prof.city || '?'),
             'Phone: ' + state.phone,
             'Car: ' + fmtBool(prof.car) + ' | Supplies: ' + fmtBool(prof.supplies) + ' | Monday: ' + fmtBool(prof.available_job)
@@ -604,19 +604,19 @@ async function handleAdmin(text) {
     var t = String(text || '').trim();
     var u = t.toUpperCase();
     var m;
-    if (u === 'BOT OFF') { await kvSet('config:enabled', false); return sendSms(ALERT_NUMBER, 'Bot APAGADO. Manda BOT ON para prenderlo.', { alert: true }); }
-    if (u === 'BOT ON') { await kvSet('config:enabled', true); return sendSms(ALERT_NUMBER, 'Bot PRENDIDO.', { alert: true }); }
+    if (u === 'BOT OFF') { await kvSet('config:enabled', false); return sendSms(ALERT_NUMBER, 'Bot is OFF. Text BOT ON to turn it back on.', { alert: true }); }
+    if (u === 'BOT ON') { await kvSet('config:enabled', true); return sendSms(ALERT_NUMBER, 'Bot is ON.', { alert: true }); }
     if ((m = u.match(/^(PAUSA|PAUSE)\s+(.+)$/))) {
         var st = await loadState(m[2]); st.human = true; await saveState(st);
-        return sendSms(ALERT_NUMBER, 'Bot en pausa para ' + m[2].trim(), { alert: true });
+        return sendSms(ALERT_NUMBER, 'Bot paused for ' + m[2].trim(), { alert: true });
     }
     if ((m = u.match(/^(SEGUIR|RESUME)\s+(.+)$/))) {
         var st2 = await loadState(m[2]); st2.human = false; await saveState(st2);
-        return sendSms(ALERT_NUMBER, 'Bot activo otra vez para ' + m[2].trim(), { alert: true });
+        return sendSms(ALERT_NUMBER, 'Bot active again for ' + m[2].trim(), { alert: true });
     }
     if ((m = u.match(/^(BLOQUEAR|BLOCK)\s+(.+)$/))) {
         await kvSet('blocked:' + normalizePhone(m[2]), true);
-        return sendSms(ALERT_NUMBER, 'Bloqueado: ' + m[2].trim(), { alert: true });
+        return sendSms(ALERT_NUMBER, 'Blocked: ' + m[2].trim(), { alert: true });
     }
     // Anything else from Pete's cell is ignored (no reply)
 }
@@ -708,9 +708,9 @@ async function dayBeforeCheck() {
         for (var i = 0; i < keys.length; i++) {
             var st = await kvGet(keys[i]);
             if (!st || st.test || st.stage !== 'call_pending') continue;
-            lines.push((st.confirmed ? '✅ ' : '❌ NO confirmó: ') + (st.profile.name || '?') + ' ' + st.phone);
+            lines.push((st.confirmed ? '✅ ' : '❌ NOT confirmed: ') + (st.profile.name || '?') + ' ' + st.phone);
         }
-        await sendSms(ALERT_NUMBER, 'Resumen para el lunes (CONFIRMO):\n' + (lines.length ? lines.join('\n') : 'Nadie en lista de llamada.'), { alert: true });
+        await sendSms(ALERT_NUMBER, 'Monday summary (day-before confirmations):\n' + (lines.length ? lines.join('\n') : 'Nobody on the call list.'), { alert: true });
     } catch (e) { console.error('dayBeforeCheck error', e.message); }
 }
 setInterval(dayBeforeCheck, 10 * 60 * 1000);
