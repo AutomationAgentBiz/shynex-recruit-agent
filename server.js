@@ -44,7 +44,7 @@ var JOB = {
     pay: '$50 la hora por las 2 personas (o sea $25 la hora cada una) - es el pago del primer trabajo de prueba, porque es la primera vez que trabajamos juntos',
     shirts: 'el domingo 20 de septiembre (un día antes) se ven en el mismo Safeway de 3550 W 10th St, Greeley, para recoger las camisas del uniforme; la hora se la confirma la persona que los entrevistó',
     meetup: 'el lunes 21 de septiembre a las 6:30 am en el Safeway de 3550 W 10th St, Greeley (en la gasolinera/estacionamiento) para una junta rápida; de ahí manejan a Fort Collins para llegar a las 8:00 am',
-    supplies: 'cada quien trae sus propios productos y equipo de limpieza (incluyendo aspiradora)'
+    supplies: 'ella trae sus propios productos y equipo de limpieza (incluyendo aspiradora)'
 };
 
 function listFromEnv(v, fallback) {
@@ -313,7 +313,7 @@ function buildScreeningPrompt(state, now) {
         ("EL TRABAJO ACTUAL:\n" +
         "- Día: " + JOB.dateEs + ", llegar a las " + JOB.arrive + ".\n" +
         "- Tipo: " + JOB.type + ". Duración: " + JOB.hours + ".\n" +
-        "- Es para un EQUIPO DE 2 PERSONAS: la persona tiene que venir con alguien que le ayude (su propio compañero/a). Nosotros NO juntamos a la gente con otra persona.\n" +
+        "- Se necesitan 2 personas: ella y una ayudante que ella trae. Nosotros NO le conseguimos ayudante.\n" +
         "- Pago: " + JOB.pay + ". Si el trabajo necesita más tiempo, se avisa antes y solo se paga tiempo extra si se aprueba.\n" +
         "- Productos: " + JOB.supplies + ".\n" +
         "- Si la contratan: " + JOB.shirts + "; y " + JOB.meetup + ".\n" +
@@ -339,7 +339,7 @@ jobBlock + "\n" +
 
 "LO QUE SÍ PUEDES DECIR DE SHYNEX:\n" +
 "- Es trabajo como contratista independiente. El primer trabajo es de prueba con el pago indicado arriba; después normalmente se paga por casa.\n" +
-"- Cada quien trae sus propios productos, aspiradora, transporte y su ayudante.\n" +
+"- Ella trae sus propios productos, aspiradora, transporte y su ayudante.\n" +
 "- Se toman fotos de antes y después en cada casa.\n" +
 "- Es una compañía real: página web shynexclean.com y en Facebook como Shynex House Cleaning.\n" +
 "- Si preguntan si eres un robot: sí, eres un sistema automático que hace las primeras preguntas, y después una persona le llama.\n\n" +
@@ -354,7 +354,7 @@ jobBlock + "\n" +
 "Si vive en otra ciudad (Fort Collins, Loveland, Windsor, Estes Park, Denver, etc.), NO le preguntes si está segura (ya te lo dijo); dile amablemente que por ahora este trabajo es solo para personas que viven en Greeley por el horario temprano, y que la guardamos en la lista para más adelante. status = waitlist.\n" +
 "4. Si tiene carro/transporte propio. REQUISITO.\n" +
 "5. Si tiene sus propios productos de limpieza y aspiradora. REQUISITO.\n" +
-"6. Si tiene una persona que trabaje con ella (su compañero/a de equipo). REQUISITO: el trabajo es para 2 personas y cada quien trae a su ayudante; nosotros no le conseguimos compañera.\n" +
+"6. Si tiene una ayudante que venga a trabajar con ella. REQUISITO: se necesitan 2 personas, ella y su ayudante; nosotros no le conseguimos ayudante. Pregúntalo simple, por ejemplo: \"¿Tienes una ayudante que pueda venir contigo?\" Nunca digas \"cada quien\" ni \"cada persona trae una ayudante\" porque confunde. Di siempre \"ayudante\", nunca \"compañero\" ni \"compañero/a\".\n" +
 "7. ¿Cuánta experiencia tiene limpiando casas? (cuánto tiempo y de qué tipo). Si dice que NO tiene experiencia, no hagas las preguntas 7b y sigue con la 8 (no la descalifiques por eso).\n" +
 "7b. SOLO si dice que sí tiene experiencia: dile que le vas a hacer unas preguntas rápidas de limpieza y hazle estas, UNA POR MENSAJE, en este orden: " +
 "(1) ¿Cómo quitas un anillo café en el inodoro? " +
@@ -374,7 +374,7 @@ jobBlock + "\n" +
 "12. Cuando te dé la hora, cierra con un mensaje corto: que le van a llamar " + win.es + " cerca de esa hora" +
 (active ? ", que si la contratan le confirman los detalles, y que un día antes (" + JOB.dayBeforeEs + ") tendría que confirmar por aquí que sí va. No digas que ya está contratada" : "") + ".\n\n" +
 
-"SI NO CUMPLE UN REQUISITO (carro, productos/aspiradora, compañera de equipo" + (active ? ", poder el " + JOB.dateEs : "") + ", o no acepta el pago de prueba): " +
+"SI NO CUMPLE UN REQUISITO (carro, productos/aspiradora, ayudante" + (active ? ", poder el " + JOB.dateEs : "") + ", o no acepta el pago de prueba): " +
 "pregunta UNA vez para confirmar por si se equivocó. Si lo confirma, dile amablemente que por ahora eso se necesita para este trabajo y que la guardamos en la lista para más adelante. status = waitlist. " +
 "No ofrezcas soluciones que no están escritas aquí (no digas que la juntamos con alguien, que le prestamos algo, ni que la recogemos).\n" +
 "- Si es grosera o dice que no le interesa: despídete breve. status = not_interested.\n" +
