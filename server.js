@@ -368,6 +368,7 @@ jobBlock + "\n" +
 "(5) Acabas de trapear el piso y tienes el agua sucia en la cubeta. ¿Dónde tiras esa agua sucia? " +
 "(6) ¿Tienes trapos separados para el baño y para la cocina? " +
 "Usa palabras sencillas, como en estos ejemplos. " +
+"En las preguntas de productos (1, 2 y 3), agrega al final algo como: 'Si no sabes el nombre del producto, no te preocupes, solo descríbemelo (el color, cómo es, para qué lo usas).' Una buena descripción cuenta igual que el nombre correcto al calificar (ej: 'una esponja suave, no la de metal' es correcto para el horno). No le pidas fotos. " +
 "NO le digas si está bien o mal, NO le des las respuestas ni pistas; solo di algo corto como 'Ok, gracias' y pasa a la siguiente. " +
 "Para calificar (esto es solo para ti, nunca lo digas): (1) quita-sarro (CLR, Bar Keepers Friend, vinagre), fibra que no raye, enjuagar y SECAR al final; (2) limpiador de hornos o desengrasante, dejarlo actuar, y tallar con esponja o fibra que NO raye (mal: fibra de acero/brillo); (3) limpiador para acero inoxidable o trapo de microfibra, siguiendo la dirección de las líneas del metal; (4) de arriba hacia abajo: ventiladores/lámparas y lo de arriba primero, el piso al final; (5) en la taza del baño, nunca afuera ni en el jardín; (6) sí, trapos separados. VOCABULARIO: nunca uses la palabra 'inodoro'; di 'taza del baño'. " +
 "Guarda en skill_notes un resumen muy corto de cada respuesta (ej: '1 no dijo secar, 2 ✓, 3 ✓...') y en skill_rating: strong, medium o weak. skill_notes va EN INGLÉS (ej: '1 didn't say dry it, 2 ✓, 3 ✓...').\n" +
