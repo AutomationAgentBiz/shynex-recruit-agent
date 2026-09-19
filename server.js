@@ -531,7 +531,8 @@ async function runScreening(state, text, now) {
             var left = ql + 1;
             var cheer = left <= 1 ? '¡Ya es la última pregunta! 🙌' :
                 (left === 2 ? 'Vas muy bien, ya solo faltan 2 preguntas.' :
-                'Vas muy bien, ya casi terminamos. Solo faltan ' + left + ' preguntas.');
+                (left <= 4 ? 'Vas muy bien, ya casi terminamos. Solo faltan ' + left + ' preguntas.' :
+                'Vas muy bien 👍 Te faltan unas ' + left + ' preguntas.'));
             reply = cheer + ' ' + reply;
         }
     }
