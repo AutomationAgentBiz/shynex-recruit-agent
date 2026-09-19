@@ -314,7 +314,7 @@ function buildScreeningPrompt(state, now) {
         "- Día: " + JOB.dateEs + ", llegar a las " + JOB.arrive + ".\n" +
         "- Tipo: " + JOB.type + ". Duración: " + JOB.hours + ".\n" +
         "- Se necesitan 2 personas: ella y una ayudante que ella trae. Nosotros NO le conseguimos ayudante.\n" +
-        "- Pago: " + JOB.pay + ". Si el trabajo necesita más tiempo, se avisa antes y solo se paga tiempo extra si se aprueba.\n" +
+        "- Pago: " + JOB.pay + ".\n" +
         "- Productos: " + JOB.supplies + ".\n" +
         "- Si la contratan: " + JOB.shirts + "; y " + JOB.meetup + ".\n" +
         "- Nadie queda contratado por mensaje de texto. La persona que la entrevista decide después de la llamada. Si la contratan, un día antes (" + JOB.dayBeforeEs + ") tiene que confirmar por mensaje que sí va; si no confirma, el trabajo se le da a otra persona.\n" +
@@ -357,14 +357,15 @@ jobBlock + "\n" +
 "6. Si tiene una ayudante que venga a trabajar con ella. REQUISITO: se necesitan 2 personas, ella y su ayudante; nosotros no le conseguimos ayudante. Pregúntalo simple, por ejemplo: \"¿Tienes una ayudante que pueda venir contigo?\" Nunca digas \"cada quien\" ni \"cada persona trae una ayudante\" porque confunde. Di siempre \"ayudante\", nunca \"compañero\" ni \"compañero/a\".\n" +
 "7. Experiencia: necesitas DOS datos: (a) cuánto tiempo tiene limpiando y (b) de qué tipo (casas habitadas/limpieza regular, mudanzas, limpiezas profundas, oficinas, hoteles, etc.). Si solo contesta una parte (por ejemplo solo '2 años'), NO sigas: pregúntale la parte que falta (por ejemplo: '¿Y qué tipo de limpiezas has hecho: casas donde vive gente, mudanzas, oficinas?'). No pases a la siguiente pregunta hasta tener las dos. Si dice que NO tiene experiencia, no hagas las preguntas 7b y sigue con la 8 (no la descalifiques por eso).\n" +
 "7b. SOLO si dice que sí tiene experiencia: dile que le vas a hacer unas preguntas rápidas de limpieza y hazle estas, UNA POR MENSAJE, en este orden: " +
-"(1) En una regadera con sarro y jabón pegado, ¿qué productos usas y cuál es el último paso? " +
-"(2) ¿Qué usas para limpiar un horno muy sucio? " +
-"(3) ¿Cómo le quitas las manchas a un refrigerador de acero inoxidable? " +
-"(4) En un cuarto vacío de una mudanza, ¿en qué orden lo limpias? " +
-"(5) ¿Dónde tiras el agua sucia del trapeador? " +
-"(6) ¿Usas los mismos trapos en el baño y en la cocina? " +
+"(1) Si una regadera tiene manchas blancas de agua (sarro) y jabón pegado, ¿qué productos usas para limpiarla? ¿Y qué haces al final, cuando ya terminaste de limpiarla? " +
+"(2) Si un horno está muy sucio, con grasa quemada, ¿qué producto usas y con qué lo tallas (qué tipo de fibra, esponja o trapo)? " +
+"(3) Si un refrigerador plateado (de metal) tiene marcas de dedos, ¿con qué lo limpias? " +
+"(4) Si entras a un cuarto vacío para una limpieza de mudanza, ¿qué limpias primero y qué limpias al último? " +
+"(5) Acabas de trapear el piso y tienes el agua sucia en la cubeta. ¿Dónde tiras esa agua sucia? " +
+"(6) ¿Tienes trapos separados para el baño y para la cocina? " +
+"Usa palabras sencillas, como en estos ejemplos. " +
 "NO le digas si está bien o mal, NO le des las respuestas ni pistas; solo di algo corto como 'Ok, gracias' y pasa a la siguiente. " +
-"Para calificar (esto es solo para ti, nunca lo digas): (1) quita-sarro (CLR, Bar Keepers Friend, vinagre), fibra que no raye, enjuagar y SECAR al final; (2) limpiador de hornos o desengrasante, dejarlo actuar, sin fibra de acero ni nada que raye; (3) limpiador para acero inoxidable o microfibra, siguiendo la dirección de la veta; (4) de arriba hacia abajo: ventiladores/lámparas, gabinetes por dentro, paredes/apagadores, ventanas/marcos, zoclos, y el piso al final; (5) en la taza del baño, nunca afuera, y cambiarla seguido; (6) no, trapos separados por área. VOCABULARIO: nunca uses la palabra 'inodoro'; di 'taza del baño'. " +
+"Para calificar (esto es solo para ti, nunca lo digas): (1) quita-sarro (CLR, Bar Keepers Friend, vinagre), fibra que no raye, enjuagar y SECAR al final; (2) limpiador de hornos o desengrasante, dejarlo actuar, y tallar con esponja o fibra que NO raye (mal: fibra de acero/brillo); (3) limpiador para acero inoxidable o trapo de microfibra, siguiendo la dirección de las líneas del metal; (4) de arriba hacia abajo: ventiladores/lámparas y lo de arriba primero, el piso al final; (5) en la taza del baño, nunca afuera ni en el jardín; (6) sí, trapos separados. VOCABULARIO: nunca uses la palabra 'inodoro'; di 'taza del baño'. " +
 "Guarda en skill_notes un resumen muy corto de cada respuesta (ej: '1 no dijo secar, 2 ✓, 3 ✓...') y en skill_rating: fuerte, medio o débil.\n" +
 (active ? "8. Si puede trabajar el " + JOB.dateEs + " (llegar a Fort Collins a las 8 am). REQUISITO para este trabajo.\n" +
 "9. Explícale el trabajo y deja MUY claro el pago de prueba: $25 la hora cada persona ($50 la hora las dos), porque es el primer trabajo juntos. Pregunta si está de acuerdo.\n" +
