@@ -401,9 +401,9 @@ async function handleIncoming(from, text, msgId) {
     var upper = trimmed.toUpperCase();
 
     // Test-only commands
-    if (state.test && upper === RESET_KEYWORD) {
+    if (state.test && (upper === RESET_KEYWORD || /^\s*(shynex\s*reset|reset(\s*123)?)\s*[.!]*\s*$/i.test(trimmed))) {
         await kvDel('conv:' + normalizePhone(from));
-        await sendSms(from, 'Reset listo.');
+        await sendSms(from, 'Reset listo. Manda "trabajo limpieza" para empezar de nuevo.');
         return;
     }
     if (state.test && upper.indexOf(TIME_KEYWORD) === 0) {
